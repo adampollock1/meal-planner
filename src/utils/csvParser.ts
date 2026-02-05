@@ -1,4 +1,5 @@
 import { Meal, Ingredient, DayOfWeek, MealType, GroceryCategory, ImportResult, ValidationError } from '../types';
+import { getDateForDayInWeek, formatISODate } from './dateUtils';
 
 const VALID_DAYS: DayOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const VALID_MEAL_TYPES: MealType[] = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
@@ -111,7 +112,11 @@ function parseCSVContent(content: string): string[][] {
 }
 
 // Parse CSV file and return meals
-export function parseCSV(content: string): ImportResult {
+export function parseCSV(
+  content: string, 
+  weekStartsOn: 'Sunday' | 'Monday' = 'Sunday',
+  referenceDate: Date = new Date()
+): ImportResult {
   const errors: ValidationError[] = [];
   const warnings: string[] = [];
   
@@ -227,8 +232,12 @@ export function parseCSV(content: string): ImportResult {
       category,
     };
 
+    // Calculate the actual date for this day in the reference week
+    const mealDate = getDateForDayInWeek(day, weekStartsOn, referenceDate);
+    const mealDateStr = formatISODate(mealDate);
+
     // Create or update meal
-    const mealKey = `${mealName}-${day}-${mealType}`;
+    const mealKey = `${mealName}-${mealDateStr}-${mealType}`;
     if (mealMap.has(mealKey)) {
       mealMap.get(mealKey)!.ingredients.push(ingredient);
     } else {
@@ -236,6 +245,7 @@ export function parseCSV(content: string): ImportResult {
         id: generateId(),
         name: mealName,
         day,
+        date: mealDateStr,
         mealType,
         ingredients: [ingredient],
       });

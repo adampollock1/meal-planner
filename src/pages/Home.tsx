@@ -6,21 +6,19 @@ import {
   Upload, 
   ChefHat,
   ArrowRight,
-  Sparkles,
+  Sparkle,
   Coffee,
   Sun,
   Moon,
-  Cookie,
-  Bot
-} from 'lucide-react';
+  Cookie
+} from '@phosphor-icons/react';
 import { Card, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useMealPlan } from '../context/MealPlanContext';
 import { useToast } from '../context/ToastContext';
 import { parseCSV, generateSampleCSV } from '../utils/csvParser';
-import { DayOfWeek, MealType } from '../types';
-
-const DAYS: DayOfWeek[] = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+import { MealType } from '../types';
+import { formatISODate, formatShortDate } from '../utils/dateUtils';
 
 const mealTypeIcons: Record<MealType, React.ElementType> = {
   Breakfast: Coffee,
@@ -29,8 +27,29 @@ const mealTypeIcons: Record<MealType, React.ElementType> = {
   Snack: Cookie,
 };
 
-function getTodayName(): DayOfWeek {
-  return DAYS[new Date().getDay()];
+// Get the next N days starting from today
+function getNextDays(count: number): { date: Date; dateStr: string; label: string }[] {
+  const days: { date: Date; dateStr: string; label: string }[] = [];
+  const today = new Date();
+  
+  for (let i = 0; i < count; i++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
+    const dateStr = formatISODate(date);
+    
+    let label: string;
+    if (i === 0) {
+      label = 'Today';
+    } else if (i === 1) {
+      label = 'Tomorrow';
+    } else {
+      label = formatShortDate(date);
+    }
+    
+    days.push({ date, dateStr, label });
+  }
+  
+  return days;
 }
 
 export function Home() {
@@ -38,10 +57,16 @@ export function Home() {
   const { addToast } = useToast();
   const navigate = useNavigate();
 
-  const today = getTodayName();
-  const todayMeals = useMemo(() => {
-    return meals.filter(m => m.day === today);
-  }, [meals, today]);
+  // Get the next 3 days
+  const upcomingDays = useMemo(() => getNextDays(3), []);
+  
+  // Get meals for the next 3 days
+  const mealsByDay = useMemo(() => {
+    return upcomingDays.map(day => ({
+      ...day,
+      meals: meals.filter(m => m.date === day.dateStr),
+    }));
+  }, [meals, upcomingDays]);
 
   const stats = useMemo(() => ({
     totalMeals: meals.length,
@@ -65,29 +90,29 @@ export function Home() {
       <div className="space-y-8">
         {/* Welcome header */}
         <div className="text-center pt-8">
-          <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-200">
-            <ChefHat className="w-10 h-10 text-white" />
+          <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-orange-500/30">
+            <ChefHat size={40} weight="duotone" className="text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Welcome to MealPlanner</h1>
-          <p className="text-slate-500 max-w-md mx-auto">
+          <h1 className="text-3xl font-bold font-display text-slate-900 dark:text-slate-100 mb-2">Welcome to MealPlanner</h1>
+          <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto">
             Plan your weekly meals, organize ingredients, and generate smart grocery lists.
           </p>
         </div>
 
         {/* Chef Alex - Featured */}
         <div className="max-w-2xl mx-auto">
-          <Card hover onClick={() => navigate('/chat')} className="group bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200">
+          <Card hover onClick={() => navigate('/chat')} className="group bg-gradient-to-r from-orange-50/80 to-amber-50/80 dark:from-orange-900/30 dark:to-amber-900/30 border-orange-200/50 dark:border-orange-800/50">
             <div className="flex items-start gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-200 group-hover:scale-105 transition-transform">
-                <span className="text-2xl">👨‍🍳</span>
+              <div className="w-14 h-14 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:scale-105 transition-transform">
+                <ChefHat size={28} weight="duotone" className="text-white" />
               </div>
               <div className="flex-1">
-                <CardTitle className="text-orange-900">Chat with Chef Alex</CardTitle>
-                <p className="text-sm text-orange-700 mt-1">
+                <CardTitle className="text-orange-900 dark:text-orange-200">Chat with Chef Alex</CardTitle>
+                <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
                   Your personal chef assistant - get meal ideas, recipes, and custom meal plans
                 </p>
               </div>
-              <ArrowRight className="w-5 h-5 text-orange-300 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
+              <ArrowRight size={20} weight="bold" className="text-orange-300 dark:text-orange-600 group-hover:text-orange-500 dark:group-hover:text-orange-400 group-hover:translate-x-1 transition-all" />
             </div>
           </Card>
         </div>
@@ -96,52 +121,52 @@ export function Home() {
         <div className="grid sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
           <Card hover onClick={() => navigate('/import')} className="group">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center group-hover:bg-orange-200 transition-colors">
-                <Upload className="w-6 h-6 text-orange-600" />
+              <div className="w-12 h-12 bg-orange-100/80 dark:bg-orange-900/40 rounded-xl flex items-center justify-center group-hover:bg-orange-200 dark:group-hover:bg-orange-900/60 transition-colors">
+                <Upload size={24} weight="duotone" className="text-orange-600 dark:text-orange-400" />
               </div>
               <div className="flex-1">
                 <CardTitle>Import CSV File</CardTitle>
-                <p className="text-sm text-slate-500 mt-1">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                   Upload a CSV file with your meal plan and ingredients
                 </p>
               </div>
-              <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
+              <ArrowRight size={20} weight="bold" className="text-slate-300 dark:text-slate-600 group-hover:text-orange-500 dark:group-hover:text-orange-400 group-hover:translate-x-1 transition-all" />
             </div>
           </Card>
 
           <Card hover onClick={handleLoadSampleData} className="group">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-                <Sparkles className="w-6 h-6 text-purple-600" />
+              <div className="w-12 h-12 bg-purple-100/80 dark:bg-purple-900/40 rounded-xl flex items-center justify-center group-hover:bg-purple-200 dark:group-hover:bg-purple-900/60 transition-colors">
+                <Sparkle size={24} weight="duotone" className="text-purple-600 dark:text-purple-400" />
               </div>
               <div className="flex-1">
                 <CardTitle>Try Sample Data</CardTitle>
-                <p className="text-sm text-slate-500 mt-1">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                   Load a sample meal plan to explore the features
                 </p>
               </div>
-              <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-purple-500 group-hover:translate-x-1 transition-all" />
+              <ArrowRight size={20} weight="bold" className="text-slate-300 dark:text-slate-600 group-hover:text-purple-500 dark:group-hover:text-purple-400 group-hover:translate-x-1 transition-all" />
             </div>
           </Card>
         </div>
 
         {/* Features */}
-        <div className="bg-gradient-to-br from-slate-50 to-orange-50 rounded-3xl p-8 max-w-2xl mx-auto">
-          <h2 className="font-semibold text-slate-900 mb-4">What you can do:</h2>
+        <div className="bg-gradient-to-br from-slate-50/80 to-orange-50/80 dark:from-slate-800/80 dark:to-orange-900/20 backdrop-blur-sm rounded-3xl p-8 max-w-2xl mx-auto border border-slate-200/30 dark:border-slate-700/30">
+          <h2 className="font-semibold font-display text-slate-900 dark:text-slate-100 mb-4">What you can do:</h2>
           <ul className="space-y-3">
-            <li className="flex items-center gap-3 text-slate-700">
+            <li className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
               <div className="w-2 h-2 bg-orange-400 rounded-full" />
               View your meals in weekly or daily format
             </li>
-            <li className="flex items-center gap-3 text-slate-700">
+            <li className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
               <div className="w-2 h-2 bg-orange-400 rounded-full" />
               Auto-generate grocery lists from your meal plan
             </li>
-            <li className="flex items-center gap-3 text-slate-700">
+            <li className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
               <div className="w-2 h-2 bg-orange-400 rounded-full" />
               Check off items as you shop
             </li>
-            <li className="flex items-center gap-3 text-slate-700">
+            <li className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
               <div className="w-2 h-2 bg-orange-400 rounded-full" />
               Print your grocery list for the store
             </li>
@@ -156,135 +181,153 @@ export function Home() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Good {getTimeOfDay()}!</h1>
-        <p className="mt-1 text-slate-500">Here's your meal plan overview</p>
+        <h1 className="text-2xl font-bold font-display text-slate-900 dark:text-slate-100">Good {getTimeOfDay()}!</h1>
+        <p className="mt-1 text-slate-500 dark:text-slate-400">Here's your meal plan overview</p>
       </div>
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-orange-600" />
+            <div className="w-10 h-10 bg-orange-100/80 dark:bg-orange-900/40 rounded-xl flex items-center justify-center">
+              <Calendar size={20} weight="duotone" className="text-orange-600 dark:text-orange-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-900">{stats.totalMeals}</p>
-              <p className="text-xs text-slate-500">Meals planned</p>
+              <p className="text-2xl font-bold font-display text-slate-900 dark:text-slate-100">{stats.totalMeals}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Meals planned</p>
             </div>
           </div>
         </Card>
 
         <Card>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-              <ShoppingCart className="w-5 h-5 text-emerald-600" />
+            <div className="w-10 h-10 bg-emerald-100/80 dark:bg-emerald-900/40 rounded-xl flex items-center justify-center">
+              <ShoppingCart size={20} weight="duotone" className="text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-900">{stats.totalIngredients}</p>
-              <p className="text-xs text-slate-500">Grocery items</p>
+              <p className="text-2xl font-bold font-display text-slate-900 dark:text-slate-100">{stats.totalIngredients}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Grocery items</p>
             </div>
           </div>
         </Card>
 
         <Card>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-blue-600" />
+            <div className="w-10 h-10 bg-blue-100/80 dark:bg-blue-900/40 rounded-xl flex items-center justify-center">
+              <Calendar size={20} weight="duotone" className="text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-900">{stats.daysPlanned}</p>
-              <p className="text-xs text-slate-500">Days planned</p>
+              <p className="text-2xl font-bold font-display text-slate-900 dark:text-slate-100">{stats.daysPlanned}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Days planned</p>
             </div>
           </div>
         </Card>
 
         <Card>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-purple-600" />
+            <div className="w-10 h-10 bg-purple-100/80 dark:bg-purple-900/40 rounded-xl flex items-center justify-center">
+              <Sparkle size={20} weight="duotone" className="text-purple-600 dark:text-purple-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-900">
+              <p className="text-2xl font-bold font-display text-slate-900 dark:text-slate-100">
                 {stats.totalIngredients > 0 
                   ? Math.round((stats.checkedItems / stats.totalIngredients) * 100)
                   : 0}%
               </p>
-              <p className="text-xs text-slate-500">Shopping done</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Shopping done</p>
             </div>
           </div>
         </Card>
       </div>
 
-      {/* Today's meals */}
+      {/* Upcoming meals - 3 days */}
       <Card>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <CardTitle>Today's Meals</CardTitle>
-            <p className="text-sm text-slate-500">{today}</p>
+            <CardTitle>Upcoming Meals</CardTitle>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Next 3 days</p>
           </div>
           <Button variant="ghost" size="sm" onClick={() => navigate('/meals')}>
             View all
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight size={16} weight="bold" />
           </Button>
         </div>
 
-        {todayMeals.length > 0 ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {todayMeals.map(meal => {
-              const Icon = mealTypeIcons[meal.mealType];
-              return (
-                <div
-                  key={meal.id}
-                  className="p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <Icon className="w-4 h-4 text-slate-400" />
-                    <span className="text-xs font-medium text-slate-500">{meal.mealType}</span>
-                  </div>
-                  <p className="font-medium text-slate-900">{meal.name}</p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {meal.ingredients.length} ingredients
-                  </p>
+        <div className="space-y-4">
+          {mealsByDay.map(({ dateStr, label, meals: dayMeals }) => (
+            <div key={dateStr}>
+              {/* Day header */}
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className={`text-sm font-semibold ${
+                  label === 'Today' 
+                    ? 'text-orange-600 dark:text-orange-400' 
+                    : 'text-slate-700 dark:text-slate-300'
+                }`}>
+                  {label}
+                </h3>
+                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+              </div>
+              
+              {dayMeals.length > 0 ? (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {dayMeals.map(meal => {
+                    const Icon = mealTypeIcons[meal.mealType];
+                    return (
+                      <div
+                        key={meal.id}
+                        className="p-4 bg-slate-50/80 dark:bg-slate-700/50 backdrop-blur-sm rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <Icon size={16} weight="duotone" className="text-slate-400 dark:text-slate-500" />
+                          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{meal.mealType}</span>
+                        </div>
+                        <p className="font-medium text-slate-900 dark:text-slate-100">{meal.name}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          {meal.ingredients.length} ingredients
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-8 bg-slate-50 rounded-xl">
-            <p className="text-slate-500">No meals planned for today</p>
-          </div>
-        )}
+              ) : (
+                <div className="text-center py-4 bg-slate-50/50 dark:bg-slate-700/30 backdrop-blur-sm rounded-xl">
+                  <p className="text-sm text-slate-400 dark:text-slate-500">No meals planned</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </Card>
 
       {/* Quick actions */}
       <div className="grid sm:grid-cols-2 gap-4">
         <Card hover onClick={() => navigate('/grocery')} className="group">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-              <ShoppingCart className="w-6 h-6 text-emerald-600" />
+            <div className="w-12 h-12 bg-emerald-100/80 dark:bg-emerald-900/40 rounded-xl flex items-center justify-center">
+              <ShoppingCart size={24} weight="duotone" className="text-emerald-600 dark:text-emerald-400" />
             </div>
             <div className="flex-1">
               <CardTitle>Grocery List</CardTitle>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 {stats.checkedItems} of {stats.totalIngredients} items checked
               </p>
             </div>
-            <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
+            <ArrowRight size={20} weight="bold" className="text-slate-300 dark:text-slate-600 group-hover:text-emerald-500 dark:group-hover:text-emerald-400 group-hover:translate-x-1 transition-all" />
           </div>
         </Card>
 
         <Card hover onClick={() => navigate('/chat')} className="group">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-              <span className="text-xl">👨‍🍳</span>
+            <div className="w-12 h-12 bg-orange-100/80 dark:bg-orange-900/40 rounded-xl flex items-center justify-center">
+              <ChefHat size={24} weight="duotone" className="text-orange-600 dark:text-orange-400" />
             </div>
             <div className="flex-1">
               <CardTitle>Chef Alex (AI)</CardTitle>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 Get help planning your meals
               </p>
             </div>
-            <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
+            <ArrowRight size={20} weight="bold" className="text-slate-300 dark:text-slate-600 group-hover:text-orange-500 dark:group-hover:text-orange-400 group-hover:translate-x-1 transition-all" />
           </div>
         </Card>
       </div>

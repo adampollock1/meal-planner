@@ -1,4 +1,4 @@
-import { Bot, User, Plus, Check } from 'lucide-react';
+import { Robot, User, Plus, Check } from '@phosphor-icons/react';
 import { Button } from '../ui/Button';
 import { ChatMessage as ChatMessageType } from '../../services/geminiService';
 import { Meal } from '../../types';
@@ -52,18 +52,18 @@ export function ChatMessage({ message, onAddMeals, mealsAdded }: ChatMessageProp
       {/* Avatar */}
       <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
         isUser 
-          ? 'bg-orange-100 text-orange-600' 
-          : 'bg-emerald-100 text-emerald-600'
+          ? 'bg-orange-100/80 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400' 
+          : 'bg-emerald-100/80 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'
       }`}>
-        {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+        {isUser ? <User size={16} weight="duotone" /> : <Robot size={16} weight="duotone" />}
       </div>
 
       {/* Content */}
       <div className={`flex-1 max-w-[85%] ${isUser ? 'text-right' : ''}`}>
         <div className={`inline-block rounded-2xl px-4 py-3 ${
           isUser 
-            ? 'bg-orange-500 text-white rounded-tr-md' 
-            : 'bg-white border border-slate-200 text-slate-800 rounded-tl-md shadow-sm'
+            ? 'bg-orange-500 text-white rounded-tr-md shadow-lg shadow-orange-500/20' 
+            : 'bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 text-slate-800 dark:text-slate-200 rounded-tl-md shadow-lg dark:shadow-slate-900/20'
         }`}>
           <div className="text-sm whitespace-pre-wrap">
             {isUser ? message.content : formatMessage(message.content)}
@@ -72,14 +72,14 @@ export function ChatMessage({ message, onAddMeals, mealsAdded }: ChatMessageProp
 
         {/* Meals card */}
         {hasMeals && !isUser && (
-          <div className="mt-3 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-4">
+          <div className="mt-3 bg-gradient-to-r from-emerald-50/80 to-teal-50/80 dark:from-emerald-900/30 dark:to-teal-900/30 backdrop-blur-sm border border-emerald-200/50 dark:border-emerald-800/50 rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-emerald-800">
+              <h4 className="font-medium font-display text-emerald-800 dark:text-emerald-200">
                 {message.meals!.length} Meal{message.meals!.length !== 1 ? 's' : ''} Ready
               </h4>
               {mealsAdded ? (
-                <span className="flex items-center gap-1 text-sm text-emerald-600">
-                  <Check className="w-4 h-4" />
+                <span className="flex items-center gap-1 text-sm text-emerald-600 dark:text-emerald-400">
+                  <Check size={16} weight="bold" />
                   Added!
                 </span>
               ) : (
@@ -88,7 +88,7 @@ export function ChatMessage({ message, onAddMeals, mealsAdded }: ChatMessageProp
                   size="sm"
                   onClick={() => onAddMeals?.(message.meals!)}
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus size={16} weight="bold" />
                   Add to Plan
                 </Button>
               )}
@@ -98,21 +98,21 @@ export function ChatMessage({ message, onAddMeals, mealsAdded }: ChatMessageProp
               {message.meals!.slice(0, 5).map(meal => (
                 <div 
                   key={meal.id} 
-                  className="flex items-center justify-between bg-white/60 rounded-lg px-3 py-2"
+                  className="flex items-center justify-between bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2"
                 >
                   <div>
-                    <span className="text-sm font-medium text-slate-800">{meal.name}</span>
-                    <span className="text-xs text-slate-500 ml-2">
-                      {meal.day} • {meal.mealType}
+                    <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{meal.name}</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 ml-2">
+                      {meal.day} - {meal.mealType}
                     </span>
                   </div>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-slate-400 dark:text-slate-500">
                     {meal.ingredients.length} items
                   </span>
                 </div>
               ))}
               {message.meals!.length > 5 && (
-                <p className="text-xs text-slate-500 text-center py-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400 text-center py-1">
                   +{message.meals!.length - 5} more meals
                 </p>
               )}
@@ -121,7 +121,7 @@ export function ChatMessage({ message, onAddMeals, mealsAdded }: ChatMessageProp
         )}
 
         {/* Timestamp */}
-        <p className={`text-xs text-slate-400 mt-1 ${isUser ? 'text-right' : ''}`}>
+        <p className={`text-xs text-slate-400 dark:text-slate-500 mt-1 ${isUser ? 'text-right' : ''}`}>
           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </p>
       </div>

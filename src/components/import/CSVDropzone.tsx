@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Upload, FileText, AlertCircle } from 'lucide-react';
+import { UploadSimple, FileText, WarningCircle } from '@phosphor-icons/react';
 
 interface CSVDropzoneProps {
   onFileSelect: (content: string) => void;
@@ -69,8 +69,8 @@ export function CSVDropzone({ onFileSelect }: CSVDropzoneProps) {
         className={`
           relative border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-200
           ${isDragging 
-            ? 'border-orange-400 bg-orange-50' 
-            : 'border-slate-300 hover:border-slate-400 hover:bg-slate-50'
+            ? 'border-orange-400 bg-orange-50/80 dark:border-orange-500 dark:bg-orange-900/20 backdrop-blur-sm' 
+            : 'border-slate-300/50 dark:border-slate-600/50 hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 backdrop-blur-sm'
           }
         `}
       >
@@ -83,35 +83,35 @@ export function CSVDropzone({ onFileSelect }: CSVDropzoneProps) {
         
         <div className="flex flex-col items-center gap-4">
           <div className={`
-            w-16 h-16 rounded-2xl flex items-center justify-center transition-colors
-            ${isDragging ? 'bg-orange-100' : 'bg-slate-100'}
+            w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-200
+            ${isDragging ? 'bg-orange-100/80 dark:bg-orange-900/40' : 'bg-slate-100/80 dark:bg-slate-700/80'}
           `}>
             {isDragging ? (
-              <FileText className="w-8 h-8 text-orange-500" />
+              <FileText size={32} weight="duotone" className="text-orange-500 dark:text-orange-400" />
             ) : (
-              <Upload className="w-8 h-8 text-slate-400" />
+              <UploadSimple size={32} weight="duotone" className="text-slate-400 dark:text-slate-500" />
             )}
           </div>
           
           <div>
-            <p className="text-lg font-medium text-slate-700">
+            <p className="text-lg font-medium font-display text-slate-700 dark:text-slate-300">
               {isDragging ? 'Drop your file here' : 'Drag and drop your CSV file'}
             </p>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               or click to browse from your computer
             </p>
           </div>
           
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <FileText className="w-4 h-4" />
+          <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
+            <FileText size={16} weight="duotone" />
             <span>CSV files only, max 5MB</span>
           </div>
         </div>
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
-          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+        <div className="flex items-center gap-2 p-4 bg-red-50/80 dark:bg-red-900/20 backdrop-blur-sm border border-red-200/50 dark:border-red-800/50 rounded-xl text-red-700 dark:text-red-300">
+          <WarningCircle size={20} weight="duotone" className="flex-shrink-0" />
           <p className="text-sm">{error}</p>
         </div>
       )}

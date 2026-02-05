@@ -22,7 +22,7 @@ export function ChatContainer({ messages, onAddMeals, addedMessageIds }: ChatCon
   return (
     <div 
       ref={containerRef}
-      className="flex-1 overflow-y-auto p-4 space-y-4"
+      className="flex-1 overflow-y-auto p-4 space-y-5"
     >
       {messages.map((message, index) => (
         <ChatMessage 

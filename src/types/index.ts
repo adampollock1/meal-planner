@@ -38,8 +38,18 @@ export interface Meal {
   id: string;
   name: string;
   day: DayOfWeek;
+  date: string; // ISO date string (YYYY-MM-DD) - the actual date of the meal
   mealType: MealType;
   ingredients: Ingredient[];
+}
+
+// A favorite meal template (no date, can be reused)
+export interface FavoriteMeal {
+  id: string;
+  name: string;
+  mealType: MealType;
+  ingredients: Ingredient[];
+  createdAt: string;
 }
 
 // Grocery item (aggregated from ingredients)
@@ -90,17 +100,27 @@ export interface ImportResult {
 export interface MealPlanState {
   meals: Meal[];
   groceryList: GroceryItem[];
+  favorites: FavoriteMeal[];
   lastUpdated: string | null;
 }
 
 // Context actions
 export interface MealPlanActions {
+  // Meal actions
   importMeals: (meals: Meal[], replace: boolean) => void;
+  addMeal: (meal: Omit<Meal, 'id'>) => void;
+  updateMeal: (mealId: string, updates: Partial<Omit<Meal, 'id'>>) => void;
+  deleteMeal: (mealId: string) => void;
   clearAllMeals: () => void;
+  // Grocery actions
   toggleGroceryItem: (itemId: string) => void;
   clearCheckedItems: () => void;
   uncheckAllItems: () => void;
-  deleteMeal: (mealId: string) => void;
+  // Favorite actions
+  addFavorite: (favorite: Omit<FavoriteMeal, 'id' | 'createdAt'>) => void;
+  updateFavorite: (favoriteId: string, updates: Partial<Omit<FavoriteMeal, 'id' | 'createdAt'>>) => void;
+  removeFavorite: (favoriteId: string) => void;
+  addFavoriteToMealPlan: (favoriteId: string, date: string, day: DayOfWeek) => void;
 }
 
 // Toast notification type
@@ -108,4 +128,36 @@ export interface Toast {
   id: string;
   message: string;
   type: 'success' | 'error' | 'info' | 'warning';
+}
+
+// User account
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  avatar?: string;
+  createdAt: string;
+}
+
+// User preferences/settings
+export interface UserSettings {
+  theme: 'light' | 'dark' | 'system';
+  defaultServings: number;
+  weekStartsOn: 'Sunday' | 'Monday';
+  notifications: boolean;
+}
+
+// Account state
+export interface AccountState {
+  user: User | null;
+  settings: UserSettings;
+  isLoggedIn: boolean;
+}
+
+// Account actions
+export interface AccountActions {
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  updateSettings: (settings: Partial<UserSettings>) => void;
+  updateProfile: (updates: Partial<Pick<User, 'name' | 'email' | 'avatar'>>) => void;
 }

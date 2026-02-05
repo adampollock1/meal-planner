@@ -27,6 +27,37 @@ const mealTypeIcons: Record<MealType, React.ElementType> = {
   Snack: Cookie,
 };
 
+const mealTypeColors: Record<MealType, { bg: string; text: string; icon: string }> = {
+  Breakfast: {
+    bg: 'bg-amber-100/80 dark:bg-amber-900/40',
+    text: 'text-amber-700 dark:text-amber-400',
+    icon: 'text-amber-600 dark:text-amber-400',
+  },
+  Lunch: {
+    bg: 'bg-orange-100/80 dark:bg-orange-900/40',
+    text: 'text-orange-700 dark:text-orange-400',
+    icon: 'text-orange-600 dark:text-orange-400',
+  },
+  Dinner: {
+    bg: 'bg-indigo-100/80 dark:bg-indigo-900/40',
+    text: 'text-indigo-700 dark:text-indigo-400',
+    icon: 'text-indigo-600 dark:text-indigo-400',
+  },
+  Snack: {
+    bg: 'bg-emerald-100/80 dark:bg-emerald-900/40',
+    text: 'text-emerald-700 dark:text-emerald-400',
+    icon: 'text-emerald-600 dark:text-emerald-400',
+  },
+};
+
+// Meal type sort order - Breakfast first, then Lunch, Dinner, Snack
+const MEAL_TYPE_ORDER: Record<MealType, number> = {
+  Breakfast: 0,
+  Lunch: 1,
+  Dinner: 2,
+  Snack: 3,
+};
+
 // Get the next N days starting from today
 function getNextDays(count: number): { date: Date; dateStr: string; label: string }[] {
   const days: { date: Date; dateStr: string; label: string }[] = [];
@@ -60,11 +91,13 @@ export function Home() {
   // Get the next 3 days
   const upcomingDays = useMemo(() => getNextDays(3), []);
   
-  // Get meals for the next 3 days
+  // Get meals for the next 3 days, sorted by meal type (Breakfast, Lunch, Dinner, Snack)
   const mealsByDay = useMemo(() => {
     return upcomingDays.map(day => ({
       ...day,
-      meals: meals.filter(m => m.date === day.dateStr),
+      meals: meals
+        .filter(m => m.date === day.dateStr)
+        .sort((a, b) => MEAL_TYPE_ORDER[a.mealType] - MEAL_TYPE_ORDER[b.mealType]),
     }));
   }, [meals, upcomingDays]);
 
@@ -93,7 +126,7 @@ export function Home() {
           <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-orange-500/30">
             <ChefHat size={40} weight="duotone" className="text-white" />
           </div>
-          <h1 className="text-3xl font-bold font-display text-slate-900 dark:text-slate-100 mb-2">Welcome to MealPlanner</h1>
+          <h1 className="text-3xl font-bold font-display text-slate-900 dark:text-slate-100 mb-2">Welcome to Meal Planner</h1>
           <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto">
             Plan your weekly meals, organize ingredients, and generate smart grocery lists.
           </p>
@@ -272,14 +305,18 @@ export function Home() {
                 <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {dayMeals.map(meal => {
                     const Icon = mealTypeIcons[meal.mealType];
+                    const colors = mealTypeColors[meal.mealType];
                     return (
                       <div
                         key={meal.id}
-                        className="p-4 bg-slate-50/80 dark:bg-slate-700/50 backdrop-blur-sm rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200"
+                        onClick={() => navigate(`/meals?meal=${meal.id}`)}
+                        className="p-4 bg-slate-50/80 dark:bg-slate-700/50 backdrop-blur-sm rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200 cursor-pointer hover:shadow-md active:scale-[0.98]"
                       >
                         <div className="flex items-center gap-2 mb-2">
-                          <Icon size={16} weight="duotone" className="text-slate-400 dark:text-slate-500" />
-                          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{meal.mealType}</span>
+                          <div className={`w-6 h-6 rounded-md flex items-center justify-center ${colors.bg}`}>
+                            <Icon size={14} weight="duotone" className={colors.icon} />
+                          </div>
+                          <span className={`text-xs font-semibold ${colors.text}`}>{meal.mealType}</span>
                         </div>
                         <p className="font-medium text-slate-900 dark:text-slate-100">{meal.name}</p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">

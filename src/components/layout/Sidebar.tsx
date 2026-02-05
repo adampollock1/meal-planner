@@ -1,5 +1,5 @@
 import { NavLink, Link } from 'react-router-dom';
-import { House, Calendar, ListBullets, ShoppingCart, Upload, ForkKnife, Robot, Gear, SignIn } from '@phosphor-icons/react';
+import { House, Calendar, ListBullets, ShoppingCart, Upload, ForkKnife, ChefHat, Gear, SignIn } from '@phosphor-icons/react';
 import { useAccount } from '../../context/AccountContext';
 import { UserAvatar } from '../account/UserAvatar';
 
@@ -7,7 +7,7 @@ const navItems = [
   { to: '/', icon: House, label: 'Home' },
   { to: '/meals', icon: Calendar, label: 'Meal Plan' },
   { to: '/meal-list', icon: ListBullets, label: 'Meal List' },
-  { to: '/chat', icon: Robot, label: 'Chef Alex (AI)' },
+  { to: '/chat', icon: ChefHat, label: 'Chef Alex' },
   { to: '/grocery', icon: ShoppingCart, label: 'Grocery List' },
   { to: '/import', icon: Upload, label: 'Import CSV' },
 ];

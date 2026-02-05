@@ -1,7 +1,7 @@
-import { Robot, User, Plus, Check } from '@phosphor-icons/react';
+import { ChefHat, User, Plus, Check } from '@phosphor-icons/react';
 import { Button } from '../ui/Button';
-import { ChatMessage as ChatMessageType } from '../../services/geminiService';
-import { Meal } from '../../types';
+import { ChatMessage as ChatMessageType, Meal } from '../../types';
+import { parseISODate, formatShortDate } from '../../utils/dateUtils';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -53,9 +53,9 @@ export function ChatMessage({ message, onAddMeals, mealsAdded }: ChatMessageProp
       <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
         isUser 
           ? 'bg-orange-100/80 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400' 
-          : 'bg-emerald-100/80 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'
+          : 'bg-gradient-to-br from-orange-400 to-amber-500 shadow-md shadow-orange-500/20'
       }`}>
-        {isUser ? <User size={16} weight="duotone" /> : <Robot size={16} weight="duotone" />}
+        {isUser ? <User size={16} weight="duotone" /> : <ChefHat size={16} weight="fill" className="text-white" />}
       </div>
 
       {/* Content */}
@@ -72,9 +72,9 @@ export function ChatMessage({ message, onAddMeals, mealsAdded }: ChatMessageProp
 
         {/* Meals card */}
         {hasMeals && !isUser && (
-          <div className="mt-3 bg-gradient-to-r from-emerald-50/80 to-teal-50/80 dark:from-emerald-900/30 dark:to-teal-900/30 backdrop-blur-sm border border-emerald-200/50 dark:border-emerald-800/50 rounded-xl p-4">
+          <div className="mt-3 bg-gradient-to-r from-orange-50/80 to-amber-50/80 dark:from-orange-900/30 dark:to-amber-900/30 backdrop-blur-sm border border-orange-200/50 dark:border-orange-800/50 rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium font-display text-emerald-800 dark:text-emerald-200">
+              <h4 className="font-medium font-display text-orange-800 dark:text-orange-200">
                 {message.meals!.length} Meal{message.meals!.length !== 1 ? 's' : ''} Ready
               </h4>
               {mealsAdded ? (
@@ -95,22 +95,28 @@ export function ChatMessage({ message, onAddMeals, mealsAdded }: ChatMessageProp
             </div>
             
             <div className="space-y-2">
-              {message.meals!.slice(0, 5).map(meal => (
-                <div 
-                  key={meal.id} 
-                  className="flex items-center justify-between bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2"
-                >
-                  <div>
-                    <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{meal.name}</span>
-                    <span className="text-xs text-slate-500 dark:text-slate-400 ml-2">
-                      {meal.day} - {meal.mealType}
+              {message.meals!.slice(0, 5).map(meal => {
+                // Format the date for display
+                const mealDate = meal.date ? parseISODate(meal.date) : null;
+                const formattedDate = mealDate ? formatShortDate(mealDate) : meal.day;
+                
+                return (
+                  <div 
+                    key={meal.id} 
+                    className="flex items-center justify-between bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2"
+                  >
+                    <div>
+                      <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{meal.name}</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 ml-2">
+                        {formattedDate} · {meal.mealType}
+                      </span>
+                    </div>
+                    <span className="text-xs text-slate-400 dark:text-slate-500">
+                      {meal.ingredients.length} items
                     </span>
                   </div>
-                  <span className="text-xs text-slate-400 dark:text-slate-500">
-                    {meal.ingredients.length} items
-                  </span>
-                </div>
-              ))}
+                );
+              })}
               {message.meals!.length > 5 && (
                 <p className="text-xs text-slate-500 dark:text-slate-400 text-center py-1">
                   +{message.meals!.length - 5} more meals
@@ -122,7 +128,7 @@ export function ChatMessage({ message, onAddMeals, mealsAdded }: ChatMessageProp
 
         {/* Timestamp */}
         <p className={`text-xs text-slate-400 dark:text-slate-500 mt-1 ${isUser ? 'text-right' : ''}`}>
-          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </p>
       </div>
     </div>

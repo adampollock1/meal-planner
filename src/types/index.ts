@@ -128,6 +128,10 @@ export interface Toast {
   id: string;
   message: string;
   type: 'success' | 'error' | 'info' | 'warning';
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
 }
 
 // User account
@@ -160,4 +164,37 @@ export interface AccountActions {
   logout: () => void;
   updateSettings: (settings: Partial<UserSettings>) => void;
   updateProfile: (updates: Partial<Pick<User, 'name' | 'email' | 'avatar'>>) => void;
+}
+
+// Chat message (serializable for localStorage)
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  meals?: Meal[];
+  timestamp: string; // ISO string for serialization
+}
+
+// Chat conversation session
+export interface Conversation {
+  id: string;
+  title: string; // Auto-generated from first message
+  messages: ChatMessage[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Chat state
+export interface ChatState {
+  conversations: Conversation[];
+  activeConversationId: string | null;
+}
+
+// Chat actions
+export interface ChatActions {
+  createConversation: () => string; // Returns new conversation ID
+  deleteConversation: (conversationId: string) => void;
+  switchConversation: (conversationId: string) => void;
+  addMessage: (message: Omit<ChatMessage, 'id'>) => void;
+  getActiveConversation: () => Conversation | null;
 }

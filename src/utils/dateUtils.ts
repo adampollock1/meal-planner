@@ -89,10 +89,11 @@ export function formatShortDate(date: Date): string {
 }
 
 /**
- * Format a date as "February 4, 2026"
+ * Format a date as "Tuesday, February 4, 2026"
  */
 export function formatFullDate(date: Date): string {
   return date.toLocaleDateString('en-US', {
+    weekday: 'long',
     month: 'long',
     day: 'numeric',
     year: 'numeric',

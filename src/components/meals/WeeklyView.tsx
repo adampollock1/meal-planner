@@ -6,6 +6,7 @@ import { getOrderedDays, getWeekDates, formatDayNumber, formatISODate, isToday, 
 interface WeeklyViewProps {
   meals: Meal[];
   onDeleteMeal: (mealId: string) => void;
+  onEditMeal?: (meal: Meal) => void;
   referenceDate?: Date;
 }
 
@@ -24,7 +25,7 @@ function mealMatchesSlot(meal: Meal, dateStr: string, day: DayOfWeek, isThisWeek
   return false;
 }
 
-export function WeeklyView({ meals, onDeleteMeal, referenceDate = new Date() }: WeeklyViewProps) {
+export function WeeklyView({ meals, onDeleteMeal, onEditMeal, referenceDate = new Date() }: WeeklyViewProps) {
   const { settings } = useAccount();
   const orderedDays = getOrderedDays(settings.weekStartsOn);
   const weekDates = getWeekDates(settings.weekStartsOn, referenceDate);

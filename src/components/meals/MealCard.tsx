@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { CaretDown, CaretUp, Trash, Coffee, Sun, Moon, Cookie } from '@phosphor-icons/react';
+import { CaretDown, CaretUp, Trash, PencilSimple, Coffee, Sun, Moon, Cookie } from '@phosphor-icons/react';
 import { Card } from '../ui/Card';
 import { Meal, MealType } from '../../types';
 
 interface MealCardProps {
   meal: Meal;
   onDelete?: (mealId: string) => void;
+  onEdit?: (meal: Meal) => void;
   compact?: boolean;
+  defaultExpanded?: boolean;
 }
 
 const mealTypeIcons: Record<MealType, React.ElementType> = {
@@ -23,8 +25,8 @@ const mealTypeColors: Record<MealType, string> = {
   Snack: 'bg-emerald-100/80 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400',
 };
 
-export function MealCard({ meal, onDelete, compact = false }: MealCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export function MealCard({ meal, onDelete, onEdit, compact = false, defaultExpanded = false }: MealCardProps) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const Icon = mealTypeIcons[meal.mealType];
   const colorClass = mealTypeColors[meal.mealType];
 
@@ -89,18 +91,32 @@ export function MealCard({ meal, onDelete, compact = false }: MealCardProps) {
               ))}
             </ul>
           </div>
-          {onDelete && (
-            <div className="p-3 border-t border-slate-200/50 dark:border-slate-700/50 bg-white/50 dark:bg-slate-800/50">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(meal.id);
-                }}
-                className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-all duration-200 active:scale-95"
-              >
-                <Trash size={16} weight="duotone" />
-                Remove meal
-              </button>
+          {(onEdit || onDelete) && (
+            <div className="p-3 border-t border-slate-200/50 dark:border-slate-700/50 bg-white/50 dark:bg-slate-800/50 flex items-center justify-between">
+              {onEdit && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(meal);
+                  }}
+                  className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-all duration-200 active:scale-95"
+                >
+                  <PencilSimple size={16} weight="duotone" />
+                  Edit meal
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(meal.id);
+                  }}
+                  className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-all duration-200 active:scale-95"
+                >
+                  <Trash size={16} weight="duotone" />
+                  Remove meal
+                </button>
+              )}
             </div>
           )}
         </div>

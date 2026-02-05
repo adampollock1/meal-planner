@@ -1,5 +1,5 @@
 import { Meal, DayOfWeek, MealType, GroceryCategory } from '../types';
-import { getDateForDayInWeek, formatISODate } from '../utils/dateUtils';
+import { formatISODate, parseISODate, getDayOfWeekFromDate } from '../utils/dateUtils';
 
 const API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -34,28 +34,42 @@ function getSystemPrompt(): string {
   });
   const todayISO = formatISODate(today);
   
-  // Calculate tomorrow for reference
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowISO = formatISODate(tomorrow);
-  const tomorrowFormatted = tomorrow.toLocaleDateString('en-US', { 
-    weekday: 'long', 
-    month: 'long', 
-    day: 'numeric' 
-  });
+  // Calculate the next 14 days with their dates for accurate reference
+  const upcomingDays: { dayName: string; date: string; formatted: string }[] = [];
+  for (let i = 0; i <= 14; i++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
+    upcomingDays.push({
+      dayName: date.toLocaleDateString('en-US', { weekday: 'long' }),
+      date: formatISODate(date),
+      formatted: date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+    });
+  }
   
-  // Calculate day after tomorrow for multi-day example
-  const dayAfterTomorrow = new Date(today);
-  dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
-  const dayAfterTomorrowISO = formatISODate(dayAfterTomorrow);
-  const dayAfterTomorrowFormatted = dayAfterTomorrow.toLocaleDateString('en-US', { 
-    weekday: 'long', 
-    month: 'long', 
-    day: 'numeric' 
-  });
+  // Build a date reference table
+  const dateReferenceTable = upcomingDays.map((d, i) => {
+    const label = i === 0 ? ' (TODAY)' : i === 1 ? ' (tomorrow)' : '';
+    return `- ${d.formatted}${label} = ${d.date}`;
+  }).join('\n');
+  
+  // Get tomorrow and day after for examples
+  const tomorrow = upcomingDays[1];
+  const tomorrowISO = tomorrow.date;
+  const tomorrowFormatted = tomorrow.formatted;
+  
+  const dayAfterTomorrow = upcomingDays[2];
+  const dayAfterTomorrowISO = dayAfterTomorrow.date;
+  const dayAfterTomorrowFormatted = dayAfterTomorrow.formatted;
 
   return `TODAY'S DATE: ${todayFormatted} (${todayISO})
-TOMORROW'S DATE: ${tomorrowFormatted} (${tomorrowISO})
+
+=== DATE REFERENCE - USE THESE EXACT DATES ===
+DO NOT calculate dates yourself. Use this reference table:
+
+${dateReferenceTable}
+
+When a user asks for a meal on a specific day (e.g., "Sunday"), look up that day in the table above and use the EXACT date shown. Do not try to calculate dates manually.
+==============================================
 
 === CRITICAL RULES - READ FIRST ===
 
@@ -69,26 +83,34 @@ TOMORROW'S DATE: ${tomorrowFormatted} (${tomorrowISO})
 *************************************************************
 
 ***** CONTEXT-AWARE PLANNING - MATCH USER'S REQUEST EXACTLY *****
-- ONLY include meals that were explicitly discussed or requested
-- NEVER assume the user wants a full multi-day meal plan unless they explicitly ask for one
-- If user discusses 1 specific meal → include ONLY that 1 meal
-- If user discusses 2 meals → include ONLY those 2 meals
-- If user asks for 3 days → include exactly 3 days
-- If user asks for 1 week → include exactly 7 days
-- The number of meals in the JSON should EXACTLY match what the user requested/discussed
+THIS IS CRITICAL - THE JSON MUST ONLY CONTAIN MEALS THAT WERE EXPLICITLY DISCUSSED:
+- If user discussed 1 meal → JSON has exactly 1 meal
+- If user discussed 2 meals → JSON has exactly 2 meals
+- If user asked for 1 day → JSON has meals for exactly 1 day
+- NEVER add extra meals, days, or meal types that weren't discussed
+- Count the meals you discussed. The JSON must have that EXACT count.
 
-DISTINGUISH BETWEEN:
-1. "Make me a meal plan" / "Plan my meals" = User wants structured multi-day planning
+DISTINGUISH BETWEEN THESE SCENARIOS:
+1. "Make me a meal plan" / "Plan my meals for the week" = Multi-day planning
    → Ask for duration AND start date if not provided
+   → Create the full plan with multiple days
    
-2. "Add this to my plan" / "Save that" / "I want that one" = User wants to save specific discussed meals
-   → Ask ONLY for the date if not provided
-   → Do NOT create additional meals they didn't ask for
+2. "Add this to my plan" / "Save that" / "Yes, add it" = SAVE ONLY WHAT WAS DISCUSSED
+   → Include ONLY the specific meal(s) from the conversation
+   → Do NOT add breakfast, lunch, dinner, or other days unless discussed
+   → If you showed 1 dinner, the JSON has 1 dinner. Period.
    
-3. "What's a good breakfast?" / "Give me an idea for dinner" = Just chatting/recommendations
-   → Give suggestions naturally, no JSON needed
-   → ONLY include JSON if user then asks to add/save it
+3. "What's a good breakfast?" = Just chatting
+   → No JSON needed unless they ask to save it
 *****************************************************************
+
+COMMON MISTAKE TO AVOID:
+If you discussed "Grilled Salmon for Sunday dinner" and user says "add it":
+- CORRECT: JSON contains 1 meal (Grilled Salmon, Sunday, Dinner)
+- WRONG: JSON contains 3 meals (breakfast, lunch, dinner for Sunday)
+- WRONG: JSON contains 7 days of meals
+
+The JSON is NOT a template to fill out. It's a record of EXACTLY what was discussed.
 
 DO NOT ASK REDUNDANT QUESTIONS:
 - If user says "starting tomorrow" or "tomorrow" → DO NOT ask when to start. You already know.
@@ -109,6 +131,13 @@ User: [After you recommended a breakfast] "Add that to tomorrow"
 → You have: the specific meal + date (tomorrow)
 → Include ONLY that 1 breakfast in the JSON for ${tomorrowISO}
 → Do NOT add lunch, dinner, or other days
+→ JSON should have exactly 1 meal object
+
+User: "Plan dinner for Sunday" [You suggest Grilled Salmon] "Yes add it"
+→ You discussed: 1 dinner (Grilled Salmon) for Sunday
+→ JSON must contain EXACTLY 1 meal: Grilled Salmon, Sunday, Dinner
+→ Do NOT add breakfast or lunch for Sunday
+→ Do NOT add meals for other days
 
 User: "I want that breakfast and also suggest a lunch"
 → Give both meals, then ask: "Which day should I add these to?"
@@ -163,14 +192,15 @@ WHEN CHATTING (no meal plan needed):
 - Be helpful and personable
 - No need for JSON - just chat!
 
-DATE CALCULATION RULES:
+DATE RULES - IMPORTANT:
+- DO NOT calculate dates yourself - use the DATE REFERENCE table above
 - "today" = ${todayISO}
 - "tomorrow" = ${tomorrowISO}
-- "next week" = the upcoming Monday through Sunday (7 days)
-- "this week" = remaining days of the current week starting from today
-- "starting Monday" = the next Monday from today
-- Calculate all dates correctly using today's date as reference
+- For any other day (e.g., "Sunday", "Monday"), find it in the DATE REFERENCE table and use that exact date
+- "next week" = find the next Monday in the table, then use 7 consecutive days
+- "this week" = remaining days from today through the next Saturday/Sunday
 - ALWAYS use YYYY-MM-DD format for dates in the JSON (e.g., "${todayISO}")
+- CRITICAL: The day name and date MUST match. If you say "Sunday, February 8th", the date must be 2026-02-08
 
 WHEN CREATING MEAL PLANS:
 1. Introduce the plan with some personality
@@ -198,7 +228,7 @@ THEN at the very end, include ONE SINGLE JSON block containing EVERY SINGLE MEAL
   "meals": [
     {
       "name": "Scrambled Eggs with Toast",
-      "day": "${tomorrow.toLocaleDateString('en-US', { weekday: 'long' })}",
+      "day": "${tomorrow.dayName}",
       "date": "${tomorrowISO}",
       "mealType": "Breakfast",
       "ingredients": [
@@ -209,14 +239,14 @@ THEN at the very end, include ONE SINGLE JSON block containing EVERY SINGLE MEAL
     },
     {
       "name": "Grilled Chicken Salad",
-      "day": "${tomorrow.toLocaleDateString('en-US', { weekday: 'long' })}",
+      "day": "${tomorrow.dayName}",
       "date": "${tomorrowISO}",
       "mealType": "Lunch",
       "ingredients": [...]
     },
     {
       "name": "Pasta Primavera",
-      "day": "${tomorrow.toLocaleDateString('en-US', { weekday: 'long' })}",
+      "day": "${tomorrow.dayName}",
       "date": "${tomorrowISO}",
       "mealType": "Dinner",
       "ingredients": [...]
@@ -238,25 +268,65 @@ CRITICAL RULES:
 - Include realistic ingredients with quantities (3-6 per meal)
 - The JSON must be wrapped in \`\`\`json and \`\`\` tags at the END of your response
 
-***** FINAL REMINDER *****
-When user wants to ADD/SAVE specific meals they discussed:
-→ Include ONLY those specific meals in the JSON
-→ Ask for the date if they didn't provide one
-→ Do NOT create a full meal plan unless they asked for one
+***** FINAL REMINDER - READ THIS BEFORE EVERY RESPONSE *****
+BEFORE outputting JSON, ask yourself:
+1. How many specific meals did we discuss in this conversation?
+2. Does my JSON have EXACTLY that many meals?
+
+If the answer to #2 is "no", FIX IT before responding.
+
+When user says "add it" or "save that":
+→ Count meals discussed = Count meals in JSON
+→ 1 discussed = 1 in JSON
+→ 2 discussed = 2 in JSON
+→ NEVER pad with extra meals
 
 When user asks for a MEAL PLAN (multi-day):
-→ Create exactly the number of days they requested
-→ Include all meals for those days in the JSON
+→ Create exactly the days they requested
+→ Include all meals for those days
 
-If just chatting about food ideas with no save request:
-→ No JSON needed - just have a natural conversation
-**************************
+If just chatting with no save request:
+→ No JSON needed
+********************************************************
 
-REMEMBER: Match the user's request exactly. If they want 1 meal saved, give them 1 meal. If they want a 5-day plan, give them exactly 5 days. Never assume they want more than they asked for.`;
+GOLDEN RULE: The JSON is a receipt of what was discussed, not a template to fill. If we talked about 1 dinner, output 1 dinner.`;
 }
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 11);
+}
+
+// Day name to JS day number (0 = Sunday, 1 = Monday, etc.)
+const DAY_TO_NUMBER: Record<DayOfWeek, number> = {
+  'Sunday': 0,
+  'Monday': 1,
+  'Tuesday': 2,
+  'Wednesday': 3,
+  'Thursday': 4,
+  'Friday': 5,
+  'Saturday': 6,
+};
+
+/**
+ * Find the next occurrence of a specific day of week from a reference date.
+ * If the reference date IS that day, it returns the reference date.
+ * Otherwise, it finds the next occurrence (within 7 days).
+ */
+function getNextOccurrenceOfDay(dayName: DayOfWeek, referenceDate: Date): Date {
+  const targetDayNum = DAY_TO_NUMBER[dayName];
+  const refDayNum = referenceDate.getDay();
+  
+  // Calculate days until target day
+  let daysUntil = targetDayNum - refDayNum;
+  if (daysUntil < 0) {
+    // Target day is earlier in the week, so go to next week
+    daysUntil += 7;
+  }
+  
+  const result = new Date(referenceDate);
+  result.setDate(result.getDate() + daysUntil);
+  result.setHours(0, 0, 0, 0);
+  return result;
 }
 
 function parseJsonFromResponse(
@@ -283,27 +353,42 @@ function parseJsonFromResponse(
       
       if (parsed.meals && Array.isArray(parsed.meals)) {
         const parsedMeals = parsed.meals.map((meal: any) => {
-          const day = validateDay(meal.day);
+          const statedDay = validateDay(meal.day);
           
           // Use the date from AI if provided and valid, otherwise calculate from day
           let mealDateStr: string;
+          let finalDay: DayOfWeek = statedDay;
+          
           // Trim whitespace and check for valid YYYY-MM-DD format
           const cleanedDate = meal.date?.toString().trim();
           if (cleanedDate && /^\d{4}-\d{2}-\d{2}$/.test(cleanedDate)) {
             // AI provided a valid date in YYYY-MM-DD format
-            mealDateStr = cleanedDate;
+            // Validate that the date matches the stated day
+            const parsedDate = parseISODate(cleanedDate);
+            const actualDayOfWeek = getDayOfWeekFromDate(parsedDate);
+            
+            if (actualDayOfWeek !== statedDay) {
+              // Day/date mismatch! The AI said one day but gave a date for a different day.
+              // Trust the stated day name and recalculate the correct date.
+              console.log(`Day/date mismatch for "${meal.name}": stated ${statedDay} but date ${cleanedDate} is actually ${actualDayOfWeek}. Recalculating date.`);
+              const correctedDate = getNextOccurrenceOfDay(statedDay, referenceDate);
+              mealDateStr = formatISODate(correctedDate);
+              console.log(`Corrected date for ${statedDay}: ${mealDateStr}`);
+            } else {
+              // Date is valid and matches the day
+              mealDateStr = cleanedDate;
+            }
           } else {
-            // Fallback: calculate the date for this day based on referenceDate
-            // For "tomorrow", "next week", etc., we need to intelligently calculate
-            const mealDate = getDateForDayInWeek(day, weekStartsOn, referenceDate);
+            // Fallback: calculate the next occurrence of this day from reference date
+            const mealDate = getNextOccurrenceOfDay(statedDay, referenceDate);
             mealDateStr = formatISODate(mealDate);
-            console.log(`Meal "${meal.name}" had invalid date "${meal.date}", calculated ${mealDateStr} for ${day}`);
+            console.log(`Meal "${meal.name}" had invalid date "${meal.date}", calculated ${mealDateStr} for ${statedDay}`);
           }
           
           return {
             id: generateId(),
             name: meal.name || 'Unnamed Meal',
-            day,
+            day: finalDay,
             date: mealDateStr,
             mealType: validateMealType(meal.mealType),
             ingredients: (meal.ingredients || []).map((ing: any) => ({

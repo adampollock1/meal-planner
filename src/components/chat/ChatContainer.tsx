@@ -1,7 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { ChatMessage } from './ChatMessage';
-import { ChatMessage as ChatMessageType } from '../../services/geminiService';
-import { Meal } from '../../types';
+import { ChatMessage as ChatMessageType, Meal } from '../../types';
 
 interface ChatContainerProps {
   messages: ChatMessageType[];

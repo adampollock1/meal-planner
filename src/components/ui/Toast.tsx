@@ -27,6 +27,13 @@ function ToastItem({ toast }: { toast: ToastType }) {
   const { removeToast } = useToast();
   const Icon = icons[toast.type];
 
+  const handleAction = () => {
+    if (toast.action) {
+      toast.action.onClick();
+      removeToast(toast.id);
+    }
+  };
+
   return (
     <div 
       className={`flex items-center gap-3 px-4 py-3 rounded-xl border backdrop-blur-xl shadow-lg dark:shadow-slate-900/50 animate-slide-in ${styles[toast.type]}`}
@@ -34,6 +41,14 @@ function ToastItem({ toast }: { toast: ToastType }) {
     >
       <Icon size={20} weight="duotone" className={`flex-shrink-0 ${iconStyles[toast.type]}`} />
       <p className="flex-1 text-sm font-medium">{toast.message}</p>
+      {toast.action && (
+        <button
+          onClick={handleAction}
+          className="px-3 py-1 text-sm font-semibold rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-200 active:scale-95"
+        >
+          {toast.action.label}
+        </button>
+      )}
       <button
         onClick={() => removeToast(toast.id)}
         className="p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-all duration-200 active:scale-95"

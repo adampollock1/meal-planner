@@ -3,6 +3,7 @@ import { MealPlanProvider } from './context/MealPlanContext';
 import { ToastProvider } from './context/ToastContext';
 import { AccountProvider } from './context/AccountContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { ChatProvider } from './context/ChatContext';
 import { Layout } from './components/layout/Layout';
 import { Home } from './pages/Home';
 import { MealPlan } from './pages/MealPlan';
@@ -20,18 +21,20 @@ function App() {
         <AccountProvider>
           <ThemeProvider>
             <MealPlanProvider>
-              <Routes>
-                <Route path="/" element={<Layout />}>
-                  <Route index element={<Home />} />
-                  <Route path="chat" element={<Chat />} />
-                  <Route path="meals" element={<MealPlan />} />
-                  <Route path="meal-list" element={<MealList />} />
-                  <Route path="grocery" element={<GroceryList />} />
-                  <Route path="import" element={<Import />} />
-                  <Route path="account" element={<Account />} />
-                  <Route path="settings" element={<Settings />} />
-                </Route>
-              </Routes>
+              <ChatProvider>
+                <Routes>
+                  <Route path="/" element={<Layout />}>
+                    <Route index element={<Home />} />
+                    <Route path="chat" element={<Chat />} />
+                    <Route path="meals" element={<MealPlan />} />
+                    <Route path="meal-list" element={<MealList />} />
+                    <Route path="grocery" element={<GroceryList />} />
+                    <Route path="import" element={<Import />} />
+                    <Route path="account" element={<Account />} />
+                    <Route path="settings" element={<Settings />} />
+                  </Route>
+                </Routes>
+              </ChatProvider>
             </MealPlanProvider>
           </ThemeProvider>
         </AccountProvider>

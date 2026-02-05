@@ -10,7 +10,9 @@ interface DailyViewProps {
   selectedDay: DayOfWeek;
   onDayChange: (day: DayOfWeek) => void;
   onDeleteMeal: (mealId: string) => void;
+  onEditMeal?: (meal: Meal) => void;
   referenceDate?: Date;
+  expandedMealId?: string | null;
 }
 
 const MEAL_TYPE_ORDER: MealType[] = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
@@ -28,7 +30,7 @@ function mealMatchesSlot(meal: Meal, dateStr: string, day: DayOfWeek, isThisWeek
   return false;
 }
 
-export function DailyView({ meals, selectedDay, onDayChange, onDeleteMeal, referenceDate = new Date() }: DailyViewProps) {
+export function DailyView({ meals, selectedDay, onDayChange, onDeleteMeal, onEditMeal, referenceDate = new Date(), expandedMealId }: DailyViewProps) {
   const { settings } = useAccount();
   const orderedDays = getOrderedDays(settings.weekStartsOn);
   const weekDates = getWeekDates(settings.weekStartsOn, referenceDate);
@@ -129,6 +131,8 @@ export function DailyView({ meals, selectedDay, onDayChange, onDeleteMeal, refer
                     key={meal.id}
                     meal={meal}
                     onDelete={onDeleteMeal}
+                    onEdit={onEditMeal}
+                    defaultExpanded={meal.id === expandedMealId}
                   />
                 ))}
               </div>

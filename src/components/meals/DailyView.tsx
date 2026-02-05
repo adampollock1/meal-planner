@@ -98,7 +98,7 @@ export function DailyView({ meals, selectedDay, onDayChange, onDeleteMeal, onEdi
       </div>
 
       {/* Day selector pills */}
-      <div className="flex justify-center gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="flex justify-center gap-2 overflow-x-auto pb-3 -mx-4 px-4 sm:mx-0 sm:px-0">
         {orderedDays.map((day, index) => {
           const date = weekDates[index];
           const isTodayDate = isToday(date);
@@ -110,7 +110,7 @@ export function DailyView({ meals, selectedDay, onDayChange, onDeleteMeal, onEdi
               onClick={() => onDayChange(day)}
               className={`flex flex-col items-center px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 ${
                 isSelected
-                  ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
+                  ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'
                   : isTodayDate
                     ? 'bg-orange-100/80 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border border-orange-200/50 dark:border-orange-800/50 backdrop-blur-sm'
                     : 'bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/50 dark:border-slate-700/50'

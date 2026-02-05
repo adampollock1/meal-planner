@@ -6,10 +6,11 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  footer?: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
-export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Handle escape key
@@ -77,6 +78,13 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
         <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-5">
           {children}
         </div>
+
+        {/* Sticky Footer */}
+        {footer && (
+          <div className="flex-shrink-0 px-4 py-3 bg-slate-50/80 dark:bg-slate-800/80 backdrop-blur-sm border-t border-slate-200/50 dark:border-slate-700/50 rounded-b-2xl">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { ChefHat, Key } from '@phosphor-icons/react';
 import { ChatContainer } from '../components/chat/ChatContainer';
 import { ChatInput } from '../components/chat/ChatInput';
@@ -30,8 +30,14 @@ export function Chat() {
     getActiveConversation, 
     addMessage, 
     createConversation,
+    clearActiveConversation,
     activeConversationId 
   } = useChat();
+
+  // Reset to new chat when navigating to this page
+  useEffect(() => {
+    clearActiveConversation();
+  }, [clearActiveConversation]);
 
   const apiConfigured = isApiKeyConfigured();
 

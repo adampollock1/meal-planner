@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Modal, ModalFooter } from '../ui/Modal';
+import { useNavigate } from 'react-router-dom';
+import { ChefHat } from '@phosphor-icons/react';
+import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Toggle } from '../ui/Toggle';
 import { DatePicker } from '../ui/DatePicker';
@@ -41,6 +43,7 @@ export function MealEditModal({
   mode,
   title,
 }: MealEditModalProps) {
+  const navigate = useNavigate();
   const [name, setName] = useState('');
   const [mealType, setMealType] = useState<MealType>('Dinner');
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
@@ -99,12 +102,37 @@ export function MealEditModal({
   const isValid = name.trim().length > 0 && 
     (mode === 'favorite' || date.length > 0);
 
+  const footerContent = (
+    <form onSubmit={handleSubmit} className={`flex items-center w-full ${mode === 'favorite' ? 'justify-end' : 'justify-between'}`}>
+      {/* Chef Alex button - only show for meal modes, not favorites */}
+      {mode !== 'favorite' && (
+        <button
+          type="button"
+          onClick={() => {
+            onClose();
+            navigate('/chat');
+          }}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-all duration-200"
+        >
+          <ChefHat size={16} weight="duotone" />
+          <span className="hidden sm:inline">Make with Chef Alex!</span>
+          <span className="sm:hidden">Chef Alex</span>
+        </button>
+      )}
+
+      {/* Save button */}
+      <Button type="submit" size="sm" disabled={!isValid}>
+        {mode === 'addFavoriteToMealPlan' ? 'Add' : 'Save'}
+      </Button>
+    </form>
+  );
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={getModalTitle()} size="lg">
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <Modal isOpen={isOpen} onClose={onClose} title={getModalTitle()} size="lg" footer={footerContent}>
+      <div className="space-y-5">
         {/* Name */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
             Meal Name
           </label>
           <input
@@ -112,14 +140,14 @@ export function MealEditModal({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g., Grilled Chicken Salad"
-            className="w-full px-4 py-3 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all duration-200"
+            className="w-full px-3 py-2.5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all duration-200"
             autoFocus
           />
         </div>
 
         {/* Meal Type */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
             Meal Type
           </label>
           <Toggle
@@ -132,7 +160,7 @@ export function MealEditModal({
         {/* Date (only for meals, not favorites) */}
         {(mode === 'meal' || mode === 'addFavoriteToMealPlan') && (
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
               Date
             </label>
             <DatePicker
@@ -145,7 +173,7 @@ export function MealEditModal({
 
         {/* Ingredients */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
             Ingredients
           </label>
           <IngredientEditor
@@ -153,17 +181,7 @@ export function MealEditModal({
             onChange={setIngredients}
           />
         </div>
-
-        {/* Footer */}
-        <ModalFooter>
-          <Button type="button" variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={!isValid}>
-            {mode === 'addFavoriteToMealPlan' ? 'Add to Plan' : 'Save'}
-          </Button>
-        </ModalFooter>
-      </form>
+      </div>
     </Modal>
   );
 }

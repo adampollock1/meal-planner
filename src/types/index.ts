@@ -195,6 +195,7 @@ export interface ChatActions {
   createConversation: () => string; // Returns new conversation ID
   deleteConversation: (conversationId: string) => void;
   switchConversation: (conversationId: string) => void;
+  clearActiveConversation: () => void; // Reset to new chat state
   addMessage: (message: Omit<ChatMessage, 'id'>) => void;
   getActiveConversation: () => Conversation | null;
 }

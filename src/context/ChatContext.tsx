@@ -88,6 +88,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }));
   }, [setData]);
 
+  // Clear active conversation (reset to new chat state)
+  const clearActiveConversation = useCallback(() => {
+    setData(prev => ({
+      ...prev,
+      activeConversationId: null,
+    }));
+  }, [setData]);
+
   // Add a message to the active conversation
   const addMessage = useCallback((message: Omit<ChatMessage, 'id'>) => {
     const newMessage: ChatMessage = {
@@ -146,6 +154,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     createConversation,
     deleteConversation,
     switchConversation,
+    clearActiveConversation,
     addMessage,
     getActiveConversation,
   };

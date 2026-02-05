@@ -11,7 +11,7 @@ import { CalendarPicker } from '../components/ui/CalendarPicker';
 import { useMealPlan } from '../context/MealPlanContext';
 import { useToast } from '../context/ToastContext';
 import { useAccount } from '../context/AccountContext';
-import { DayOfWeek, Meal } from '../types';
+import { DayOfWeek, Meal, MealType } from '../types';
 import { getTodayDayOfWeek, isCurrentWeek, parseISODate, getDayOfWeekFromDate } from '../utils/dateUtils';
 
 type ViewMode = 'weekly' | 'daily';
@@ -29,6 +29,7 @@ export function MealPlan() {
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
   const [deletedMeal, setDeletedMeal] = useState<Meal | null>(null);
   const [expandedMealId, setExpandedMealId] = useState<string | null>(null);
+  const [addMealContext, setAddMealContext] = useState<{ date: string; mealType: MealType } | null>(null);
   const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { meals, deleteMeal, addMeal, updateMeal } = useMealPlan();
   const { addToast } = useToast();
@@ -130,6 +131,26 @@ export function MealPlan() {
     setEditingMeal(null);
   }, [editingMeal, updateMeal, addToast]);
 
+  // Handler for adding a meal from an empty slot in weekly view
+  const handleAddMealFromSlot = useCallback((date: string, mealType: MealType) => {
+    setAddMealContext({ date, mealType });
+  }, []);
+
+  // Handler for saving a new meal (from empty slot)
+  const handleSaveNewMeal = useCallback((data: MealFormData) => {
+    if (data.date && data.day) {
+      addMeal({
+        name: data.name,
+        mealType: data.mealType,
+        ingredients: data.ingredients,
+        date: data.date,
+        day: data.day,
+      });
+      addToast(`Added "${data.name}"`, 'success');
+    }
+    setAddMealContext(null);
+  }, [addMeal, addToast]);
+
   // Week navigation component
   const WeekNavigator = () => (
     <div className="mt-1 flex items-center gap-2">
@@ -217,6 +238,7 @@ export function MealPlan() {
           meals={meals} 
           onDeleteMeal={handleDeleteMeal} 
           onEditMeal={handleEditMeal}
+          onAddMeal={handleAddMealFromSlot}
           referenceDate={referenceDate} 
         />
       ) : (
@@ -226,6 +248,7 @@ export function MealPlan() {
           onDayChange={setSelectedDay}
           onDeleteMeal={handleDeleteMeal}
           onEditMeal={handleEditMeal}
+          onAddMeal={handleAddMealFromSlot}
           referenceDate={referenceDate}
           expandedMealId={expandedMealId}
         />
@@ -238,6 +261,23 @@ export function MealPlan() {
         onSave={handleSaveEdit}
         meal={editingMeal}
         mode="meal"
+      />
+
+      {/* Add New Meal Modal (from empty slot) */}
+      <MealEditModal
+        isOpen={!!addMealContext}
+        onClose={() => setAddMealContext(null)}
+        onSave={handleSaveNewMeal}
+        meal={addMealContext ? {
+          id: '',
+          name: '',
+          mealType: addMealContext.mealType,
+          date: addMealContext.date,
+          day: getDayOfWeekFromDate(parseISODate(addMealContext.date)),
+          ingredients: [],
+        } : null}
+        mode="meal"
+        title="Add New Meal"
       />
     </div>
   );

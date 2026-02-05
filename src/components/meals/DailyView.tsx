@@ -1,4 +1,4 @@
-import { CaretLeft, CaretRight } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight, Plus, Coffee, Sun, Moon, Cookie } from '@phosphor-icons/react';
 import { MealCard } from './MealCard';
 import { Button } from '../ui/Button';
 import { Meal, DayOfWeek, MealType } from '../../types';
@@ -11,9 +11,17 @@ interface DailyViewProps {
   onDayChange: (day: DayOfWeek) => void;
   onDeleteMeal: (mealId: string) => void;
   onEditMeal?: (meal: Meal) => void;
+  onAddMeal?: (date: string, mealType: MealType) => void;
   referenceDate?: Date;
   expandedMealId?: string | null;
 }
+
+const mealTypeIcons: Record<MealType, React.ElementType> = {
+  Breakfast: Coffee,
+  Lunch: Sun,
+  Dinner: Moon,
+  Snack: Cookie,
+};
 
 const MEAL_TYPE_ORDER: MealType[] = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 
@@ -30,7 +38,7 @@ function mealMatchesSlot(meal: Meal, dateStr: string, day: DayOfWeek, isThisWeek
   return false;
 }
 
-export function DailyView({ meals, selectedDay, onDayChange, onDeleteMeal, onEditMeal, referenceDate = new Date(), expandedMealId }: DailyViewProps) {
+export function DailyView({ meals, selectedDay, onDayChange, onDeleteMeal, onEditMeal, onAddMeal, referenceDate = new Date(), expandedMealId }: DailyViewProps) {
   const { settings } = useAccount();
   const orderedDays = getOrderedDays(settings.weekStartsOn);
   const weekDates = getWeekDates(settings.weekStartsOn, referenceDate);
@@ -137,9 +145,21 @@ export function DailyView({ meals, selectedDay, onDayChange, onDeleteMeal, onEdi
                 ))}
               </div>
             ) : (
-              <div className="p-6 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-dashed border-slate-200/50 dark:border-slate-700/50 text-center">
-                <p className="text-sm text-slate-400 dark:text-slate-500">No {type.toLowerCase()} planned</p>
-              </div>
+              <button
+                onClick={() => onAddMeal?.(selectedDateStr, type)}
+                className="w-full p-6 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border-2 border-dashed border-slate-200/50 dark:border-slate-700/50 text-center hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-all duration-200 cursor-pointer group"
+              >
+                <div className="flex items-center justify-center gap-2">
+                  {(() => {
+                    const Icon = mealTypeIcons[type];
+                    return <Icon size={18} weight="duotone" className="text-slate-300 dark:text-slate-600 group-hover:text-slate-400 dark:group-hover:text-slate-500 transition-colors" />;
+                  })()}
+                  <p className="text-sm text-slate-400 dark:text-slate-500 group-hover:text-slate-500 dark:group-hover:text-slate-400 transition-colors">
+                    No {type.toLowerCase()} planned
+                  </p>
+                  <Plus size={16} weight="bold" className="text-slate-300 dark:text-slate-600 group-hover:text-slate-400 dark:group-hover:text-slate-500 transition-colors" />
+                </div>
+              </button>
             )}
           </div>
         ))}

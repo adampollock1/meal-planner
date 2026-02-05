@@ -1,19 +1,32 @@
-import { MealCard } from './MealCard';
+import { useState } from 'react';
+import { DayColumn } from './DayColumn';
+import { MealDetailModal } from './MealDetailModal';
 import { Meal, MealType, DayOfWeek } from '../../types';
 import { useAccount } from '../../context/AccountContext';
-import { getOrderedDays, getWeekDates, formatDayNumber, formatISODate, isToday, isCurrentWeek } from '../../utils/dateUtils';
+import {
+  getOrderedDays,
+  getWeekDates,
+  formatDayNumber,
+  formatISODate,
+  isToday,
+  isCurrentWeek,
+} from '../../utils/dateUtils';
 
 interface WeeklyViewProps {
   meals: Meal[];
   onDeleteMeal: (mealId: string) => void;
   onEditMeal?: (meal: Meal) => void;
+  onAddMeal?: (date: string, mealType: MealType) => void;
   referenceDate?: Date;
 }
 
-const MEAL_TYPES: MealType[] = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
-
 // Helper to check if a meal belongs to a specific date/day
-function mealMatchesSlot(meal: Meal, dateStr: string, day: DayOfWeek, isThisWeek: boolean): boolean {
+function mealMatchesDate(
+  meal: Meal,
+  dateStr: string,
+  day: DayOfWeek,
+  isThisWeek: boolean
+): boolean {
   // If meal has a valid date, match by date
   if (meal.date && /^\d{4}-\d{2}-\d{2}$/.test(meal.date)) {
     return meal.date === dateStr;
@@ -25,99 +38,84 @@ function mealMatchesSlot(meal: Meal, dateStr: string, day: DayOfWeek, isThisWeek
   return false;
 }
 
-export function WeeklyView({ meals, onDeleteMeal, onEditMeal, referenceDate = new Date() }: WeeklyViewProps) {
+export function WeeklyView({
+  meals,
+  onDeleteMeal,
+  onEditMeal,
+  onAddMeal,
+  referenceDate = new Date(),
+}: WeeklyViewProps) {
   const { settings } = useAccount();
   const orderedDays = getOrderedDays(settings.weekStartsOn);
   const weekDates = getWeekDates(settings.weekStartsOn, referenceDate);
   const isThisWeek = isCurrentWeek(settings.weekStartsOn, referenceDate);
 
-  // Group meals by date and type (using actual dates, with fallback for old meals)
-  const mealGrid = weekDates.map((date, index) => {
+  // State for the meal detail modal
+  const [viewingMeal, setViewingMeal] = useState<Meal | null>(null);
+
+  // Build data for each day column
+  const dayColumns = weekDates.map((date, index) => {
     const dateStr = formatISODate(date);
     const day = orderedDays[index];
-    const dayMeals = meals.filter(m => mealMatchesSlot(m, dateStr, day, isThisWeek));
+    const dayMeals = meals.filter((m) =>
+      mealMatchesDate(m, dateStr, day, isThisWeek)
+    );
+
     return {
-      day,
       date,
-      meals: MEAL_TYPES.map(type => dayMeals.filter(m => m.mealType === type)),
+      dayName: day.slice(0, 3),
+      dayNumber: parseInt(formatDayNumber(date), 10),
+      meals: dayMeals,
+      isToday: isToday(date),
     };
   });
 
-  return (
-    <div className="overflow-x-auto -mx-4 sm:mx-0">
-      <div className="min-w-[800px] px-4 sm:px-0">
-        {/* Header */}
-        <div className="grid grid-cols-8 gap-2 mb-3">
-          <div className="p-2" />
-          {orderedDays.map((day, index) => {
-            const date = weekDates[index];
-            const isTodayDate = isToday(date);
-            
-            return (
-              <div key={day} className="p-2 text-center">
-                <span className={`text-sm font-medium ${
-                  isTodayDate 
-                    ? 'text-orange-600 dark:text-orange-400' 
-                    : 'text-slate-600 dark:text-slate-400'
-                }`}>
-                  {day.slice(0, 3)}
-                </span>
-                <div className={`mt-1 inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold ${
-                  isTodayDate
-                    ? 'bg-orange-500 text-white'
-                    : 'text-slate-500 dark:text-slate-400'
-                }`}>
-                  {formatDayNumber(date)}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+  const handleMealClick = (meal: Meal) => {
+    setViewingMeal(meal);
+  };
 
-        {/* Grid */}
-        {MEAL_TYPES.map((type, typeIdx) => (
-          <div key={type} className="grid grid-cols-8 gap-2 mb-2">
-            <div className="p-2 flex items-center">
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                {type}
-              </span>
-            </div>
-            {orderedDays.map((day, dayIdx) => {
-              const cellMeals = mealGrid[dayIdx].meals[typeIdx];
-              const date = weekDates[dayIdx];
-              const isTodayDate = isToday(date);
-              
-              return (
-                <div
-                  key={`${day}-${type}`}
-                  className={`min-h-[80px] rounded-xl border p-2 transition-all duration-200 ${
-                    isTodayDate
-                      ? 'bg-orange-50/80 dark:bg-orange-900/20 border-orange-200/50 dark:border-orange-800/50 backdrop-blur-sm'
-                      : 'bg-white/70 dark:bg-slate-800/70 border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm'
-                  }`}
-                >
-                  {cellMeals.length > 0 ? (
-                    <div className="space-y-2">
-                      {cellMeals.map(meal => (
-                        <MealCard
-                          key={meal.id}
-                          meal={meal}
-                          onDelete={onDeleteMeal}
-                          compact
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="h-full flex items-center justify-center">
-                      <span className="text-xs text-slate-300 dark:text-slate-600">-</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+  const handleEmptySlotClick = (date: string, mealType: MealType) => {
+    if (onAddMeal) {
+      onAddMeal(date, mealType);
+    }
+  };
+
+  const handleEditFromModal = (meal: Meal) => {
+    if (onEditMeal) {
+      onEditMeal(meal);
+    }
+  };
+
+  const handleDeleteFromModal = (mealId: string) => {
+    onDeleteMeal(mealId);
+  };
+
+  return (
+    <>
+      {/* Responsive grid: 7 columns on desktop, fewer on smaller screens */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+        {dayColumns.map((col) => (
+          <DayColumn
+            key={col.date.toISOString()}
+            date={col.date}
+            dayName={col.dayName}
+            dayNumber={col.dayNumber}
+            meals={col.meals}
+            isToday={col.isToday}
+            onMealClick={handleMealClick}
+            onEmptySlotClick={handleEmptySlotClick}
+          />
         ))}
       </div>
-    </div>
+
+      {/* Meal Detail Modal */}
+      <MealDetailModal
+        meal={viewingMeal}
+        isOpen={!!viewingMeal}
+        onClose={() => setViewingMeal(null)}
+        onEdit={handleEditFromModal}
+        onDelete={handleDeleteFromModal}
+      />
+    </>
   );
 }

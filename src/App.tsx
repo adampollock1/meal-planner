@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { MealPlanProvider } from './context/MealPlanContext';
 import { ToastProvider } from './context/ToastContext';
@@ -17,11 +16,6 @@ import { Account } from './pages/Account';
 import { Settings } from './pages/Settings';
 
 function App() {
-  // #region agent log
-  useEffect(() => {
-    fetch('http://127.0.0.1:7249/ingest/24630c7d-265b-4884-88b6-481174deff54',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:mount',message:'App mounted',data:{fullUrl:window.location.href,pathname:window.location.pathname,hash:window.location.hash,search:window.location.search},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1,H3,H5'})}).catch(()=>{});
-  }, []);
-  // #endregion
   return (
     <BrowserRouter>
       <ToastProvider>

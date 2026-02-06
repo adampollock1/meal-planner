@@ -66,10 +66,6 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     const initAuth = async () => {
       setIsLoading(true);
       
-      // #region agent log
-      fetch('http://127.0.0.1:7249/ingest/24630c7d-265b-4884-88b6-481174deff54',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountContext.tsx:initAuth',message:'Auth init started',data:{url:window.location.href,hash:window.location.hash,isSupabaseConfigured},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3,H4'})}).catch(()=>{});
-      // #endregion
-      
       // If Supabase isn't configured, just finish loading
       if (!isSupabaseConfigured) {
         console.warn('Supabase not configured - running in demo mode');
@@ -79,11 +75,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       
       try {
         // Check for existing session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        // #region agent log
-        fetch('http://127.0.0.1:7249/ingest/24630c7d-265b-4884-88b6-481174deff54',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountContext.tsx:getSession',message:'Session check result',data:{hasSession:!!session,hasUser:!!session?.user,sessionError:sessionError?.message||null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{});
-        // #endregion
+        const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
           setUser(mapSupabaseUser(session.user));
@@ -91,9 +83,6 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
           setSettings(userSettings);
         }
       } catch (error) {
-        // #region agent log
-        fetch('http://127.0.0.1:7249/ingest/24630c7d-265b-4884-88b6-481174deff54',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountContext.tsx:initAuth:catch',message:'Auth init error',data:{error:error instanceof Error ? error.message : String(error)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{});
-        // #endregion
         console.error('Error initializing auth:', error);
       }
       
@@ -109,10 +98,6 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7249/ingest/24630c7d-265b-4884-88b6-481174deff54',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AccountContext.tsx:onAuthStateChange',message:'Auth state changed',data:{event,hasSession:!!session,hasUser:!!session?.user,userEmail:session?.user?.email},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
-      // #endregion
-      
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(mapSupabaseUser(session.user));
         // Set loading to false IMMEDIATELY - don't wait for settings fetch

@@ -19,7 +19,7 @@ const MOCK_USER: User = {
 
 // Default settings
 const DEFAULT_SETTINGS: UserSettings = {
-  theme: 'system',
+  theme: 'light',
   defaultServings: 4,
   weekStartsOn: 'Sunday',
   notifications: true,

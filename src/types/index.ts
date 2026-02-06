@@ -102,6 +102,7 @@ export interface MealPlanState {
   groceryList: GroceryItem[];
   favorites: FavoriteMeal[];
   lastUpdated: string | null;
+  isLoading: boolean;
 }
 
 // Context actions
@@ -156,14 +157,19 @@ export interface AccountState {
   user: User | null;
   settings: UserSettings;
   isLoggedIn: boolean;
+  isLoading: boolean;
+  authError: string | null;
 }
 
 // Account actions
 export interface AccountActions {
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  updateSettings: (settings: Partial<UserSettings>) => void;
-  updateProfile: (updates: Partial<Pick<User, 'name' | 'email' | 'avatar'>>) => void;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signup: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
+  updateSettings: (settings: Partial<UserSettings>) => Promise<void>;
+  updateProfile: (updates: Partial<Pick<User, 'name' | 'email' | 'avatar'>>) => Promise<void>;
+  clearAuthError: () => void;
 }
 
 // Chat message (serializable for localStorage)

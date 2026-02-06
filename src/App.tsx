@@ -5,6 +5,7 @@ import { AccountProvider } from './context/AccountContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ChatProvider } from './context/ChatContext';
 import { Layout } from './components/layout/Layout';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { Home } from './pages/Home';
 import { MealPlan } from './pages/MealPlan';
 import { MealList } from './pages/MealList';
@@ -24,14 +25,43 @@ function App() {
               <ChatProvider>
                 <Routes>
                   <Route path="/" element={<Layout />}>
+                    {/* Public route - just shows welcome/overview */}
                     <Route index element={<Home />} />
-                    <Route path="chat" element={<Chat />} />
-                    <Route path="meals" element={<MealPlan />} />
-                    <Route path="meal-list" element={<MealList />} />
-                    <Route path="grocery" element={<GroceryList />} />
-                    <Route path="import" element={<Import />} />
+                    
+                    {/* Account page - handles both login and profile */}
                     <Route path="account" element={<Account />} />
-                    <Route path="settings" element={<Settings />} />
+                    
+                    {/* Protected routes - require authentication */}
+                    <Route path="chat" element={
+                      <ProtectedRoute>
+                        <Chat />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="meals" element={
+                      <ProtectedRoute>
+                        <MealPlan />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="meal-list" element={
+                      <ProtectedRoute>
+                        <MealList />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="grocery" element={
+                      <ProtectedRoute>
+                        <GroceryList />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="import" element={
+                      <ProtectedRoute>
+                        <Import />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="settings" element={
+                      <ProtectedRoute>
+                        <Settings />
+                      </ProtectedRoute>
+                    } />
                   </Route>
                 </Routes>
               </ChatProvider>

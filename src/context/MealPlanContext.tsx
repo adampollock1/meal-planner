@@ -1,245 +1,375 @@
-import React, { createContext, useContext, useCallback, useMemo } from 'react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import React, { createContext, useContext, useCallback, useMemo, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import { generateGroceryList } from '../utils/groceryGenerator';
-import { Meal, FavoriteMeal, MealPlanState, MealPlanActions, DayOfWeek } from '../types';
+import { Meal, FavoriteMeal, MealPlanState, MealPlanActions, DayOfWeek, Ingredient } from '../types';
 import { useAccount } from './AccountContext';
-import { getDayOfWeekFromDate, parseISODate } from '../utils/dateUtils';
 
 interface MealPlanContextType extends MealPlanState, MealPlanActions {}
 
 const MealPlanContext = createContext<MealPlanContextType | null>(null);
 
-const STORAGE_KEY_PREFIX = 'mealplan-data';
-const LEGACY_STORAGE_KEY = 'mealplan-data';
-const FAVORITES_STORAGE_KEY = 'mealplan-favorites';
-
-interface StoredData {
-  meals: Meal[];
-  checkedItems: string[];
-  lastUpdated: string | null;
-}
-
-interface StoredFavorites {
-  favorites: FavoriteMeal[];
-}
-
 // Generate unique ID
 function generateId(): string {
-  return Math.random().toString(36).substring(2, 11);
-}
-
-// Helper to get user-specific storage key
-function getStorageKey(userId: string | undefined): string {
-  if (userId) {
-    return `${STORAGE_KEY_PREFIX}-${userId}`;
-  }
-  return LEGACY_STORAGE_KEY;
+  return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 11);
 }
 
 export function MealPlanProvider({ children }: { children: React.ReactNode }) {
   const { user, isLoggedIn } = useAccount();
   
-  // Generate storage key based on user ID for multi-user support
-  const storageKey = useMemo(() => getStorageKey(user?.id), [user?.id]);
-  
-  // Check for legacy data migration when user logs in
-  const getInitialData = (): StoredData => {
-    const defaultData: StoredData = {
-      meals: [],
-      checkedItems: [],
-      lastUpdated: null,
-    };
-
-    // If logged in, check if we need to migrate legacy data
-    if (isLoggedIn && user?.id) {
-      const userDataKey = getStorageKey(user.id);
-      const existingUserData = window.localStorage.getItem(userDataKey);
-      
-      if (!existingUserData) {
-        // Check for legacy data to migrate
-        const legacyData = window.localStorage.getItem(LEGACY_STORAGE_KEY);
-        if (legacyData) {
-          try {
-            const parsed = JSON.parse(legacyData);
-            // Migrate legacy data to user-specific storage
-            window.localStorage.setItem(userDataKey, legacyData);
-            return parsed;
-          } catch {
-            return defaultData;
-          }
-        }
-      }
-    }
-
-    return defaultData;
-  };
-
-  const [data, setData] = useLocalStorage<StoredData>(storageKey, getInitialData());
-  
-  // Favorites storage (separate from meal plan data)
-  const favoritesKey = useMemo(() => 
-    user?.id ? `${FAVORITES_STORAGE_KEY}-${user.id}` : FAVORITES_STORAGE_KEY, 
-    [user?.id]
-  );
-  const [favoritesData, setFavoritesData] = useLocalStorage<StoredFavorites>(
-    favoritesKey, 
-    { favorites: [] }
-  );
+  const [meals, setMeals] = useState<Meal[]>([]);
+  const [favorites, setFavorites] = useState<FavoriteMeal[]>([]);
+  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Generate grocery list from meals
   const groceryList = useMemo(() => {
-    const checkedSet = new Set(data.checkedItems.map(name => name.toLowerCase()));
-    return generateGroceryList(data.meals, checkedSet);
-  }, [data.meals, data.checkedItems]);
+    return generateGroceryList(meals, checkedItems);
+  }, [meals, checkedItems]);
+
+  // Fetch meals from Supabase
+  const fetchMeals = useCallback(async () => {
+    if (!user?.id) return;
+
+    const { data, error } = await supabase
+      .from('meals')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('date', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching meals:', error);
+      return;
+    }
+
+    if (data) {
+      const mappedMeals: Meal[] = data.map(row => ({
+        id: row.id,
+        name: row.name,
+        day: row.day as DayOfWeek,
+        date: row.date,
+        mealType: row.meal_type,
+        ingredients: (row.ingredients as Ingredient[]) || [],
+      }));
+      setMeals(mappedMeals);
+    }
+  }, [user?.id]);
+
+  // Fetch favorites from Supabase
+  const fetchFavorites = useCallback(async () => {
+    if (!user?.id) return;
+
+    const { data, error } = await supabase
+      .from('favorites')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching favorites:', error);
+      return;
+    }
+
+    if (data) {
+      const mappedFavorites: FavoriteMeal[] = data.map(row => ({
+        id: row.id,
+        name: row.name,
+        mealType: row.meal_type,
+        ingredients: (row.ingredients as Ingredient[]) || [],
+        createdAt: row.created_at,
+      }));
+      setFavorites(mappedFavorites);
+    }
+  }, [user?.id]);
+
+  // Load data when user logs in
+  useEffect(() => {
+    if (isLoggedIn && user?.id) {
+      setIsLoading(true);
+      Promise.all([fetchMeals(), fetchFavorites()])
+        .finally(() => setIsLoading(false));
+    } else {
+      // Clear data on logout
+      setMeals([]);
+      setFavorites([]);
+      setCheckedItems(new Set());
+      setIsLoading(false);
+    }
+  }, [isLoggedIn, user?.id, fetchMeals, fetchFavorites]);
 
   // Import meals (replace or append)
-  const importMeals = useCallback((newMeals: Meal[], replace: boolean) => {
-    setData(prev => ({
-      meals: replace ? newMeals : [...prev.meals, ...newMeals],
-      checkedItems: replace ? [] : prev.checkedItems,
-      lastUpdated: new Date().toISOString(),
+  const importMeals = useCallback(async (newMeals: Meal[], replace: boolean) => {
+    if (!user?.id) return;
+
+    if (replace) {
+      // Delete all existing meals first
+      await supabase
+        .from('meals')
+        .delete()
+        .eq('user_id', user.id);
+      
+      setCheckedItems(new Set());
+    }
+
+    // Insert new meals
+    const mealsToInsert = newMeals.map(meal => ({
+      id: meal.id || generateId(),
+      user_id: user.id,
+      name: meal.name,
+      meal_type: meal.mealType,
+      day: meal.day,
+      date: meal.date,
+      ingredients: meal.ingredients,
     }));
-  }, [setData]);
+
+    const { error } = await supabase
+      .from('meals')
+      .insert(mealsToInsert);
+
+    if (error) {
+      console.error('Error importing meals:', error);
+      return;
+    }
+
+    // Refresh meals
+    await fetchMeals();
+    setLastUpdated(new Date().toISOString());
+  }, [user?.id, fetchMeals]);
 
   // Clear all meals
-  const clearAllMeals = useCallback(() => {
-    setData({
-      meals: [],
-      checkedItems: [],
-      lastUpdated: new Date().toISOString(),
-    });
-  }, [setData]);
+  const clearAllMeals = useCallback(async () => {
+    if (!user?.id) return;
 
-  // Toggle grocery item checked state
+    const { error } = await supabase
+      .from('meals')
+      .delete()
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error clearing meals:', error);
+      return;
+    }
+
+    setMeals([]);
+    setCheckedItems(new Set());
+    setLastUpdated(new Date().toISOString());
+  }, [user?.id]);
+
+  // Add a single meal
+  const addMeal = useCallback(async (meal: Omit<Meal, 'id'>) => {
+    if (!user?.id) return;
+
+    const newMeal = {
+      id: generateId(),
+      user_id: user.id,
+      name: meal.name,
+      meal_type: meal.mealType,
+      day: meal.day,
+      date: meal.date,
+      ingredients: meal.ingredients,
+    };
+
+    const { error } = await supabase
+      .from('meals')
+      .insert(newMeal);
+
+    if (error) {
+      console.error('Error adding meal:', error);
+      return;
+    }
+
+    // Optimistically update local state
+    const localMeal: Meal = {
+      id: newMeal.id,
+      name: meal.name,
+      mealType: meal.mealType,
+      day: meal.day,
+      date: meal.date,
+      ingredients: meal.ingredients,
+    };
+    setMeals(prev => [...prev, localMeal]);
+    setLastUpdated(new Date().toISOString());
+  }, [user?.id]);
+
+  // Update an existing meal
+  const updateMeal = useCallback(async (mealId: string, updates: Partial<Omit<Meal, 'id'>>) => {
+    if (!user?.id) return;
+
+    const dbUpdates: Record<string, unknown> = {};
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.mealType !== undefined) dbUpdates.meal_type = updates.mealType;
+    if (updates.day !== undefined) dbUpdates.day = updates.day;
+    if (updates.date !== undefined) dbUpdates.date = updates.date;
+    if (updates.ingredients !== undefined) dbUpdates.ingredients = updates.ingredients;
+
+    const { error } = await supabase
+      .from('meals')
+      .update(dbUpdates)
+      .eq('id', mealId)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error updating meal:', error);
+      return;
+    }
+
+    // Optimistically update local state
+    setMeals(prev => prev.map(m => 
+      m.id === mealId ? { ...m, ...updates } : m
+    ));
+    setLastUpdated(new Date().toISOString());
+  }, [user?.id]);
+
+  // Delete a specific meal
+  const deleteMeal = useCallback(async (mealId: string) => {
+    if (!user?.id) return;
+
+    const { error } = await supabase
+      .from('meals')
+      .delete()
+      .eq('id', mealId)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error deleting meal:', error);
+      return;
+    }
+
+    // Optimistically update local state
+    setMeals(prev => prev.filter(m => m.id !== mealId));
+    setLastUpdated(new Date().toISOString());
+  }, [user?.id]);
+
+  // Toggle grocery item checked state (local only - ephemeral)
   const toggleGroceryItem = useCallback((itemId: string) => {
     const item = groceryList.find(i => i.id === itemId);
     if (!item) return;
 
     const normalizedName = item.name.toLowerCase();
     
-    setData(prev => {
-      const isCurrentlyChecked = prev.checkedItems.some(
-        name => name.toLowerCase() === normalizedName
-      );
-      
-      return {
-        ...prev,
-        checkedItems: isCurrentlyChecked
-          ? prev.checkedItems.filter(name => name.toLowerCase() !== normalizedName)
-          : [...prev.checkedItems, item.name],
-        lastUpdated: new Date().toISOString(),
-      };
+    setCheckedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(normalizedName)) {
+        next.delete(normalizedName);
+      } else {
+        next.add(normalizedName);
+      }
+      return next;
     });
-  }, [groceryList, setData]);
+  }, [groceryList]);
 
-  // Clear all checked items from the list
+  // Clear all checked items
   const clearCheckedItems = useCallback(() => {
-    setData(prev => ({
-      ...prev,
-      checkedItems: [],
-      lastUpdated: new Date().toISOString(),
-    }));
-  }, [setData]);
+    setCheckedItems(new Set());
+  }, []);
 
   // Uncheck all items
   const uncheckAllItems = useCallback(() => {
-    setData(prev => ({
-      ...prev,
-      checkedItems: [],
-      lastUpdated: new Date().toISOString(),
-    }));
-  }, [setData]);
-
-  // Delete a specific meal
-  const deleteMeal = useCallback((mealId: string) => {
-    setData(prev => ({
-      ...prev,
-      meals: prev.meals.filter(m => m.id !== mealId),
-      lastUpdated: new Date().toISOString(),
-    }));
-  }, [setData]);
-
-  // Add a single meal
-  const addMeal = useCallback((meal: Omit<Meal, 'id'>) => {
-    const newMeal: Meal = {
-      ...meal,
-      id: generateId(),
-    };
-    setData(prev => ({
-      ...prev,
-      meals: [...prev.meals, newMeal],
-      lastUpdated: new Date().toISOString(),
-    }));
-  }, [setData]);
-
-  // Update an existing meal
-  const updateMeal = useCallback((mealId: string, updates: Partial<Omit<Meal, 'id'>>) => {
-    setData(prev => ({
-      ...prev,
-      meals: prev.meals.map(m => 
-        m.id === mealId ? { ...m, ...updates } : m
-      ),
-      lastUpdated: new Date().toISOString(),
-    }));
-  }, [setData]);
+    setCheckedItems(new Set());
+  }, []);
 
   // Add a favorite
-  const addFavorite = useCallback((favorite: Omit<FavoriteMeal, 'id' | 'createdAt'>) => {
-    const newFavorite: FavoriteMeal = {
-      ...favorite,
+  const addFavorite = useCallback(async (favorite: Omit<FavoriteMeal, 'id' | 'createdAt'>) => {
+    if (!user?.id) return;
+
+    const newFavorite = {
       id: generateId(),
+      user_id: user.id,
+      name: favorite.name,
+      meal_type: favorite.mealType,
+      ingredients: favorite.ingredients,
+    };
+
+    const { error } = await supabase
+      .from('favorites')
+      .insert(newFavorite);
+
+    if (error) {
+      console.error('Error adding favorite:', error);
+      return;
+    }
+
+    // Optimistically update local state
+    const localFavorite: FavoriteMeal = {
+      id: newFavorite.id,
+      name: favorite.name,
+      mealType: favorite.mealType,
+      ingredients: favorite.ingredients,
       createdAt: new Date().toISOString(),
     };
-    setFavoritesData(prev => ({
-      favorites: [...prev.favorites, newFavorite],
-    }));
-  }, [setFavoritesData]);
+    setFavorites(prev => [localFavorite, ...prev]);
+  }, [user?.id]);
 
   // Update a favorite
-  const updateFavorite = useCallback((favoriteId: string, updates: Partial<Omit<FavoriteMeal, 'id' | 'createdAt'>>) => {
-    setFavoritesData(prev => ({
-      favorites: prev.favorites.map(f => 
-        f.id === favoriteId ? { ...f, ...updates } : f
-      ),
-    }));
-  }, [setFavoritesData]);
+  const updateFavorite = useCallback(async (favoriteId: string, updates: Partial<Omit<FavoriteMeal, 'id' | 'createdAt'>>) => {
+    if (!user?.id) return;
+
+    const dbUpdates: Record<string, unknown> = {};
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.mealType !== undefined) dbUpdates.meal_type = updates.mealType;
+    if (updates.ingredients !== undefined) dbUpdates.ingredients = updates.ingredients;
+
+    const { error } = await supabase
+      .from('favorites')
+      .update(dbUpdates)
+      .eq('id', favoriteId)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error updating favorite:', error);
+      return;
+    }
+
+    // Optimistically update local state
+    setFavorites(prev => prev.map(f => 
+      f.id === favoriteId ? { ...f, ...updates } : f
+    ));
+  }, [user?.id]);
 
   // Remove a favorite
-  const removeFavorite = useCallback((favoriteId: string) => {
-    setFavoritesData(prev => ({
-      favorites: prev.favorites.filter(f => f.id !== favoriteId),
-    }));
-  }, [setFavoritesData]);
+  const removeFavorite = useCallback(async (favoriteId: string) => {
+    if (!user?.id) return;
+
+    const { error } = await supabase
+      .from('favorites')
+      .delete()
+      .eq('id', favoriteId)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error removing favorite:', error);
+      return;
+    }
+
+    // Optimistically update local state
+    setFavorites(prev => prev.filter(f => f.id !== favoriteId));
+  }, [user?.id]);
 
   // Add a favorite to the meal plan
-  const addFavoriteToMealPlan = useCallback((favoriteId: string, date: string, day: DayOfWeek) => {
-    const favorite = favoritesData.favorites.find(f => f.id === favoriteId);
-    if (!favorite) return;
+  const addFavoriteToMealPlan = useCallback(async (favoriteId: string, date: string, day: DayOfWeek) => {
+    const favorite = favorites.find(f => f.id === favoriteId);
+    if (!favorite || !user?.id) return;
 
-    const newMeal: Meal = {
-      id: generateId(),
+    const newMeal: Omit<Meal, 'id'> = {
       name: favorite.name,
       mealType: favorite.mealType,
       day,
       date,
       ingredients: favorite.ingredients.map(ing => ({
         ...ing,
-        id: generateId(), // Generate new IDs for ingredients
+        id: generateId(),
       })),
     };
 
-    setData(prev => ({
-      ...prev,
-      meals: [...prev.meals, newMeal],
-      lastUpdated: new Date().toISOString(),
-    }));
-  }, [favoritesData.favorites, setData]);
+    await addMeal(newMeal);
+  }, [favorites, user?.id, addMeal]);
 
   const value: MealPlanContextType = {
-    meals: data.meals,
+    meals,
     groceryList,
-    favorites: favoritesData.favorites,
-    lastUpdated: data.lastUpdated,
+    favorites,
+    lastUpdated,
+    isLoading,
     // Meal actions
     importMeals,
     addMeal,

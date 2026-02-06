@@ -10,11 +10,13 @@ import {
   Coffee,
   Sun,
   Moon,
-  Cookie
+  Cookie,
+  User
 } from '@phosphor-icons/react';
 import { Card, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useMealPlan } from '../context/MealPlanContext';
+import { useAccount } from '../context/AccountContext';
 import { useToast } from '../context/ToastContext';
 import { parseCSV, generateSampleCSV } from '../utils/csvParser';
 import { MealType } from '../types';
@@ -84,7 +86,8 @@ function getNextDays(count: number): { date: Date; dateStr: string; label: strin
 }
 
 export function Home() {
-  const { meals, groceryList, importMeals } = useMealPlan();
+  const { meals, groceryList, importMeals, isLoading } = useMealPlan();
+  const { isLoggedIn, isLoading: authLoading } = useAccount();
   const { addToast } = useToast();
   const navigate = useNavigate();
 
@@ -117,7 +120,94 @@ export function Home() {
     }
   };
 
-  // Empty state
+  // Show loading state while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-[400px] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-500 dark:text-slate-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Welcome screen for logged-out users
+  if (!isLoggedIn) {
+    return (
+      <div className="space-y-8">
+        {/* Welcome header */}
+        <div className="text-center pt-8">
+          <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-orange-500/30">
+            <ChefHat size={40} weight="duotone" className="text-white" />
+          </div>
+          <h1 className="text-3xl font-bold font-display text-slate-900 dark:text-slate-100 mb-2">Welcome to Meal Planner</h1>
+          <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+            Plan your weekly meals, organize ingredients, and generate smart grocery lists.
+          </p>
+        </div>
+
+        {/* Sign in CTA */}
+        <div className="max-w-md mx-auto">
+          <Card hover onClick={() => navigate('/account')} className="group bg-gradient-to-r from-orange-50/80 to-amber-50/80 dark:from-orange-900/30 dark:to-amber-900/30 border-orange-200/50 dark:border-orange-800/50">
+            <div className="flex items-start gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:scale-105 transition-transform">
+                <User size={28} weight="duotone" className="text-white" />
+              </div>
+              <div className="flex-1">
+                <CardTitle className="text-orange-900 dark:text-orange-200">Sign In to Get Started</CardTitle>
+                <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
+                  Create an account or sign in to start planning your meals
+                </p>
+              </div>
+              <ArrowRight size={20} weight="bold" className="text-orange-300 dark:text-orange-600 group-hover:text-orange-500 dark:group-hover:text-orange-400 group-hover:translate-x-1 transition-all" />
+            </div>
+          </Card>
+        </div>
+
+        {/* Features */}
+        <div className="bg-gradient-to-br from-slate-50/80 to-orange-50/80 dark:from-slate-800/80 dark:to-orange-900/20 backdrop-blur-sm rounded-3xl p-8 max-w-2xl mx-auto border border-slate-200/30 dark:border-slate-700/30">
+          <h2 className="font-semibold font-display text-slate-900 dark:text-slate-100 mb-4">What you can do:</h2>
+          <ul className="space-y-3">
+            <li className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
+              <div className="w-2 h-2 bg-orange-400 rounded-full" />
+              Chat with Chef Alex for personalized meal ideas
+            </li>
+            <li className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
+              <div className="w-2 h-2 bg-orange-400 rounded-full" />
+              View your meals in weekly or daily format
+            </li>
+            <li className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
+              <div className="w-2 h-2 bg-orange-400 rounded-full" />
+              Auto-generate grocery lists from your meal plan
+            </li>
+            <li className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
+              <div className="w-2 h-2 bg-orange-400 rounded-full" />
+              Save favorite meals for quick access
+            </li>
+            <li className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
+              <div className="w-2 h-2 bg-orange-400 rounded-full" />
+              Sync your data across all your devices
+            </li>
+          </ul>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading state for meal data
+  if (isLoading) {
+    return (
+      <div className="min-h-[400px] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-500 dark:text-slate-400">Loading your meal plan...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state (logged in but no meals)
   if (meals.length === 0) {
     return (
       <div className="space-y-8">

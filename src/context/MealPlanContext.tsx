@@ -31,27 +31,39 @@ export function MealPlanProvider({ children }: { children: React.ReactNode }) {
   const fetchMeals = useCallback(async () => {
     if (!user?.id) return;
 
-    const { data, error } = await supabase
-      .from('meals')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('date', { ascending: true });
+    // #region agent log
+    fetch('http://127.0.0.1:7249/ingest/24630c7d-265b-4884-88b6-481174deff54',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MealPlanContext.tsx:fetchMeals:start',message:'Fetching meals',data:{userId:user.id},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H7,H9'})}).catch(()=>{});
+    // #endregion
 
-    if (error) {
-      console.error('Error fetching meals:', error);
-      return;
-    }
+    try {
+      const { data, error } = await supabase
+        .from('meals')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: true });
 
-    if (data) {
-      const mappedMeals: Meal[] = data.map(row => ({
-        id: row.id,
-        name: row.name,
-        day: row.day as DayOfWeek,
-        date: row.date,
-        mealType: row.meal_type,
-        ingredients: (row.ingredients as Ingredient[]) || [],
-      }));
-      setMeals(mappedMeals);
+      // #region agent log
+      fetch('http://127.0.0.1:7249/ingest/24630c7d-265b-4884-88b6-481174deff54',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MealPlanContext.tsx:fetchMeals:result',message:'Meals fetch result',data:{hasData:!!data,dataLength:data?.length,error:error?.message||null,errorCode:error?.code||null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H7,H9,H10'})}).catch(()=>{});
+      // #endregion
+
+      if (error) {
+        console.error('Error fetching meals:', error);
+        return;
+      }
+
+      if (data) {
+        const mappedMeals: Meal[] = data.map(row => ({
+          id: row.id,
+          name: row.name,
+          day: row.day as DayOfWeek,
+          date: row.date,
+          mealType: row.meal_type,
+          ingredients: (row.ingredients as Ingredient[]) || [],
+        }));
+        setMeals(mappedMeals);
+      }
+    } catch (err) {
+      console.error('Error fetching meals:', err);
     }
   }, [user?.id]);
 
@@ -59,34 +71,55 @@ export function MealPlanProvider({ children }: { children: React.ReactNode }) {
   const fetchFavorites = useCallback(async () => {
     if (!user?.id) return;
 
-    const { data, error } = await supabase
-      .from('favorites')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+    // #region agent log
+    fetch('http://127.0.0.1:7249/ingest/24630c7d-265b-4884-88b6-481174deff54',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MealPlanContext.tsx:fetchFavorites:start',message:'Fetching favorites',data:{userId:user.id},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H7,H9'})}).catch(()=>{});
+    // #endregion
 
-    if (error) {
-      console.error('Error fetching favorites:', error);
-      return;
-    }
+    try {
+      const { data, error } = await supabase
+        .from('favorites')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-    if (data) {
-      const mappedFavorites: FavoriteMeal[] = data.map(row => ({
-        id: row.id,
-        name: row.name,
-        mealType: row.meal_type,
-        ingredients: (row.ingredients as Ingredient[]) || [],
-        createdAt: row.created_at,
-      }));
-      setFavorites(mappedFavorites);
+      // #region agent log
+      fetch('http://127.0.0.1:7249/ingest/24630c7d-265b-4884-88b6-481174deff54',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MealPlanContext.tsx:fetchFavorites:result',message:'Favorites fetch result',data:{hasData:!!data,dataLength:data?.length,error:error?.message||null,errorCode:error?.code||null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H7,H9,H10'})}).catch(()=>{});
+      // #endregion
+
+      if (error) {
+        console.error('Error fetching favorites:', error);
+        return;
+      }
+
+      if (data) {
+        const mappedFavorites: FavoriteMeal[] = data.map(row => ({
+          id: row.id,
+          name: row.name,
+          mealType: row.meal_type,
+          ingredients: (row.ingredients as Ingredient[]) || [],
+          createdAt: row.created_at,
+        }));
+        setFavorites(mappedFavorites);
+      }
+    } catch (err) {
+      console.error('Error fetching favorites:', err);
     }
   }, [user?.id]);
 
   // Load data when user logs in
   useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7249/ingest/24630c7d-265b-4884-88b6-481174deff54',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MealPlanContext.tsx:useEffect',message:'Load data effect',data:{isLoggedIn,hasUserId:!!user?.id},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H7'})}).catch(()=>{});
+    // #endregion
+
     if (isLoggedIn && user?.id) {
       setIsLoading(true);
       Promise.all([fetchMeals(), fetchFavorites()])
+        .then(() => {
+          // #region agent log
+          fetch('http://127.0.0.1:7249/ingest/24630c7d-265b-4884-88b6-481174deff54',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MealPlanContext.tsx:useEffect:complete',message:'Data loading complete',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H7'})}).catch(()=>{});
+          // #endregion
+        })
         .finally(() => setIsLoading(false));
     } else {
       // Clear data on logout

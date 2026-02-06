@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAccount } from '../../context/AccountContext';
 
@@ -7,6 +8,12 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isLoggedIn, isLoading } = useAccount();
+
+  // #region agent log
+  useEffect(() => {
+    fetch('http://127.0.0.1:7249/ingest/24630c7d-265b-4884-88b6-481174deff54',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ProtectedRoute.tsx:render',message:'ProtectedRoute state',data:{isLoggedIn,isLoading,pathname:window.location.pathname},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H11'})}).catch(()=>{});
+  }, [isLoggedIn, isLoading]);
+  // #endregion
 
   // Show loading state while checking auth
   if (isLoading) {

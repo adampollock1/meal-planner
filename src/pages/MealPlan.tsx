@@ -30,7 +30,7 @@ export function MealPlan() {
   const [deletedMeal, setDeletedMeal] = useState<Meal | null>(null);
   const [expandedMealId, setExpandedMealId] = useState<string | null>(null);
   const [addMealContext, setAddMealContext] = useState<{ date: string; mealType: MealType } | null>(null);
-  const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { meals, deleteMeal, addMeal, updateMeal } = useMealPlan();
   const { addToast } = useToast();
   const { settings } = useAccount();

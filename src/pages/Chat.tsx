@@ -1,8 +1,9 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { ChefHat, Key } from '@phosphor-icons/react';
+import { ChefHat, Key, List, Plus } from '@phosphor-icons/react';
 import { ChatContainer } from '../components/chat/ChatContainer';
 import { ChatInput } from '../components/chat/ChatInput';
 import { ChatHistorySidebar } from '../components/chat/ChatHistorySidebar';
+import { ChatDrawer } from '../components/chat/ChatDrawer';
 import { Card } from '../components/ui/Card';
 import { useMealPlan } from '../context/MealPlanContext';
 import { useToast } from '../context/ToastContext';
@@ -22,6 +23,7 @@ export function Chat() {
   const [isLoading, setIsLoading] = useState(false);
   const [addedMessageIds, setAddedMessageIds] = useState<Set<string>>(new Set());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   
   const { importMeals } = useMealPlan();
   const { addToast } = useToast();
@@ -153,16 +155,39 @@ export function Chat() {
     <div className="h-[calc(100vh-8rem)] lg:h-[calc(100vh-4rem)] flex flex-col">
       {/* Header */}
       <div className="flex-shrink-0 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full flex items-center justify-center shadow-lg shadow-orange-500/30">
-            <ChefHat size={20} weight="fill" className="text-white" />
+        <div className="flex items-center justify-between">
+          {/* Left: Menu button (mobile) + Avatar + Title */}
+          <div className="flex items-center gap-3">
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="lg:hidden p-2 -ml-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+            >
+              <List size={24} className="text-slate-600 dark:text-slate-400" />
+            </button>
+            
+            <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full flex items-center justify-center shadow-lg shadow-orange-500/30">
+              <ChefHat size={20} weight="fill" className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold font-display text-slate-900 dark:text-slate-100">Chef Alex</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400 hidden sm:block">Your personal chef assistant</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-bold font-display text-slate-900 dark:text-slate-100">Chef Alex</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Your personal chef assistant</p>
-          </div>
+
+          {/* Right: New Chat button (mobile) */}
+          <button
+            onClick={() => createConversation()}
+            className="lg:hidden flex items-center gap-2 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-xl transition-all duration-200 shadow-sm shadow-orange-500/20"
+          >
+            <Plus size={18} weight="bold" />
+            <span className="hidden sm:inline">New Chat</span>
+          </button>
         </div>
       </div>
+
+      {/* Mobile Drawer */}
+      <ChatDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
       {/* Main chat area with sidebar */}
       <div className="flex-1 flex min-h-0 rounded-2xl overflow-hidden border border-slate-200/50 dark:border-slate-700/50">

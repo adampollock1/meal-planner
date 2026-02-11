@@ -61,7 +61,7 @@ export function ChatHistorySidebar({ isCollapsed, onToggleCollapse }: ChatHistor
 
   if (isCollapsed) {
     return (
-      <div className="flex-shrink-0 w-12 bg-slate-50/80 dark:bg-slate-800/50 border-r border-slate-200/50 dark:border-slate-700/50 flex flex-col">
+      <div className="hidden lg:flex flex-shrink-0 w-12 bg-slate-50/80 dark:bg-slate-800/50 border-r border-slate-200/50 dark:border-slate-700/50 flex-col">
         <button
           onClick={onToggleCollapse}
           className="p-3 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
@@ -81,7 +81,7 @@ export function ChatHistorySidebar({ isCollapsed, onToggleCollapse }: ChatHistor
   }
 
   return (
-    <div className="flex-shrink-0 w-64 bg-slate-50/80 dark:bg-slate-800/50 border-r border-slate-200/50 dark:border-slate-700/50 flex flex-col h-full">
+    <div className="hidden lg:flex flex-shrink-0 w-64 bg-slate-50/80 dark:bg-slate-800/50 border-r border-slate-200/50 dark:border-slate-700/50 flex-col h-full">
       {/* Header */}
       <div className="flex-shrink-0 p-3 border-b border-slate-200/50 dark:border-slate-700/50">
         <div className="flex items-center justify-between mb-3">

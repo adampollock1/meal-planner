@@ -125,25 +125,25 @@ export function Chat() {
           </div>
           <h2 className="text-xl font-bold font-display text-slate-900 dark:text-slate-100 mb-2">API Key Required</h2>
           <p className="text-slate-500 dark:text-slate-400 mb-4">
-            To use the AI meal planner, you need to add your Groq API key.
+            To use the AI meal planner, you need to add your Google AI API key.
           </p>
           <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 text-left">
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
               1. Get a free API key from{' '}
               <a 
-                href="https://console.groq.com/" 
+                href="https://aistudio.google.com/app/apikey" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-orange-600 dark:text-orange-400 hover:underline"
               >
-                Groq Console
+                Google AI Studio
               </a>
             </p>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
               2. Open the <code className="bg-slate-200 dark:bg-slate-600 px-1 rounded">.env</code> file in your project
             </p>
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              3. Replace <code className="bg-slate-200 dark:bg-slate-600 px-1 rounded">your_api_key_here</code> with your key
+              3. Set <code className="bg-slate-200 dark:bg-slate-600 px-1 rounded">VITE_GOOGLE_AI_KEY</code> to your key
             </p>
           </div>
         </Card>

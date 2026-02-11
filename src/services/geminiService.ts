@@ -1,9 +1,10 @@
 import { Meal, DayOfWeek, MealType, GroceryCategory } from '../types';
 import { formatISODate, parseISODate, getDayOfWeekFromDate } from '../utils/dateUtils';
 
-const API_KEY = import.meta.env.VITE_GROQ_API_KEY;
-const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const MODEL = 'llama-3.1-8b-instant';
+// Google Gemini API configuration
+const API_KEY = import.meta.env.VITE_GOOGLE_AI_KEY;
+const MODEL = 'gemini-1.5-flash';
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -12,14 +13,19 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
-interface GroqResponse {
-  choices?: Array<{
-    message?: {
-      content?: string;
+interface GeminiResponse {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{
+        text?: string;
+      }>;
+      role?: string;
     };
+    finishReason?: string;
   }>;
   error?: {
     message: string;
+    code?: number;
   };
 }
 
@@ -514,50 +520,50 @@ export async function sendMessage(
   referenceDate: Date = new Date()
 ): Promise<{ message: string; meals: Meal[] }> {
   if (!API_KEY || API_KEY === 'your_api_key_here') {
-    throw new Error('Please add your Groq API key to the .env file (VITE_GROQ_API_KEY)');
+    throw new Error('Please add your Google AI API key to the .env file (VITE_GOOGLE_AI_KEY). Get one free at https://aistudio.google.com/app/apikey');
   }
 
-  // Build conversation context for OpenAI-compatible API
-  const messages = [
-    {
-      role: 'system',
-      content: getSystemPrompt()
-    },
+  // Build conversation context for Gemini API
+  // Gemini uses "user" and "model" roles, with system instruction separate
+  const contents = [
     ...conversationHistory.map(msg => ({
-      role: msg.role === 'user' ? 'user' : 'assistant',
-      content: msg.content
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts: [{ text: msg.content }]
     })),
     {
       role: 'user',
-      content: userMessage
+      parts: [{ text: userMessage }]
     }
   ];
 
-  const response = await fetch(API_URL, {
+  const response = await fetch(`${API_URL}?key=${API_KEY}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${API_KEY}`,
     },
     body: JSON.stringify({
-      model: MODEL,
-      messages,
-      temperature: 0.7,
-      max_tokens: 2048,
+      contents,
+      systemInstruction: {
+        parts: [{ text: getSystemPrompt() }]
+      },
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 2048,
+      },
     }),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to get response from Groq');
+    throw new Error(error.error?.message || 'Failed to get response from Gemini');
   }
 
-  const data: GroqResponse = await response.json();
+  const data: GeminiResponse = await response.json();
   
-  const text = data.choices?.[0]?.message?.content;
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
   
   if (!text) {
-    throw new Error('No response received from Groq');
+    throw new Error('No response received from Gemini');
   }
 
   let result = parseJsonFromResponse(text, weekStartsOn, referenceDate);
@@ -578,30 +584,29 @@ export async function sendMessage(
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
-      // Make a follow-up request to get the JSON
-      const followUpMessages = [
-        {
-          role: 'system',
-          content: 'You are a helpful assistant that outputs JSON data. When asked for meal data, respond ONLY with a valid JSON code block containing all meals. Do not include any other text.'
-        },
+      // Make a follow-up request to get the JSON using Gemini format
+      const followUpContents = [
         {
           role: 'user',
-          content: `Here is a meal plan that was created:\n\n${text}\n\n${getJsonRequestPrompt()}`
+          parts: [{ text: `Here is a meal plan that was created:\n\n${text}\n\n${getJsonRequestPrompt()}` }]
         }
       ];
 
       try {
-        const followUpResponse = await fetch(API_URL, {
+        const followUpResponse = await fetch(`${API_URL}?key=${API_KEY}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${API_KEY}`,
           },
           body: JSON.stringify({
-            model: MODEL,
-            messages: followUpMessages,
-            temperature: 0.1, // Very low temperature for consistent JSON output
-            max_tokens: 3000,
+            contents: followUpContents,
+            systemInstruction: {
+              parts: [{ text: 'You are a helpful assistant that outputs JSON data. When asked for meal data, respond ONLY with a valid JSON code block containing all meals. Do not include any other text.' }]
+            },
+            generationConfig: {
+              temperature: 0.1, // Very low temperature for consistent JSON output
+              maxOutputTokens: 3000,
+            },
           }),
         });
 
@@ -613,8 +618,8 @@ export async function sendMessage(
         }
 
         if (followUpResponse.ok) {
-          const followUpData: GroqResponse = await followUpResponse.json();
-          const followUpText = followUpData.choices?.[0]?.message?.content;
+          const followUpData: GeminiResponse = await followUpResponse.json();
+          const followUpText = followUpData.candidates?.[0]?.content?.parts?.[0]?.text;
           
           if (followUpText) {
             console.log('Follow-up response received, parsing...');
@@ -646,5 +651,5 @@ export async function sendMessage(
 }
 
 export function isApiKeyConfigured(): boolean {
-  return !!API_KEY && API_KEY !== 'your_api_key_here';
+  return !!API_KEY && API_KEY !== 'your_api_key_here' && API_KEY.length > 10;
 }
